@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,15 @@ const COUNTRIES = [
   "Israel",
   "Turkey",
   "Greece",
+  "Saudi Arabia",
+  "Qatar",
+  "Bahrain",
+  "Panama",
+  "Monaco",
+  "Luxembourg",
+  "Cayman Islands",
+  "Bermuda",
+  "British Virgin Islands",
   "Cyprus",
   "Malta",
 ];
@@ -73,6 +82,7 @@ const ABROAD_ITEMS = [
   "Real estate",
   "None of these",
 ];
+const ONBOARDING_DRAFT_KEY = "nuvare-onboarding-draft-v1";
 
 type OnboardingAnswers = {
   meaningfulCountries: string[];
@@ -215,6 +225,37 @@ export default function OnboardingPage() {
     country.toLowerCase().includes(pensionSearch.toLowerCase()),
   );
 
+  useEffect(() => {
+    const draft = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!draft) return;
+
+    try {
+      const parsed = JSON.parse(draft) as {
+        answers?: OnboardingAnswers;
+        step?: number;
+      };
+
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (typeof parsed.step === "number") {
+        setStep(Math.min(parsed.step, AUTH_STEP));
+      }
+    } catch {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+    }
+  }, [AUTH_STEP]);
+
+  useEffect(() => {
+    if (isConfirmation) {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(
+      ONBOARDING_DRAFT_KEY,
+      JSON.stringify({ answers, step }),
+    );
+  }, [answers, step, isConfirmation]);
+
   function stepIsValid(currentStep: number) {
     if (currentStep === 0) return answers.meaningfulCountries.length > 0;
     if (currentStep === 1) {
@@ -249,7 +290,7 @@ export default function OnboardingPage() {
     return true;
   }
 
-  async function saveAnswersForUser() {
+  const saveAnswersForUser = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -287,7 +328,7 @@ export default function OnboardingPage() {
       setIsSaving(false);
       setIsAuthLoading(false);
     }
-  }
+  }, [CONFIRMATION_STEP, answers, router, supabase]);
 
   async function handleContinue() {
     setErrorMessage("");
@@ -393,6 +434,31 @@ export default function OnboardingPage() {
     await saveAnswersForUser();
   }
 
+  useEffect(() => {
+    if (!isAuthStep || isFinalizing) return;
+
+    let cancelled = false;
+
+    async function maybeFinalize() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!cancelled && user) {
+        setErrorMessage("");
+        setIsAuthLoading(true);
+        setIsFinalizing(true);
+        await saveAnswersForUser();
+      }
+    }
+
+    void maybeFinalize();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthStep, isFinalizing, saveAnswersForUser, supabase]);
+
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black text-white">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
@@ -420,8 +486,8 @@ export default function OnboardingPage() {
           <section className="question-fade-in flex flex-1 flex-col">
             <div className="space-y-9">
               <SectionTitle
-                title="Create your account to see your personalised intelligence dashboard."
-                subtitle="Secure your profile to save your onboarding answers and unlock your dashboard."
+                title="Your intelligence layer is ready."
+                subtitle="Create your account to access your personalised dashboard."
               />
               <div className="space-y-4">
                 <Button
@@ -944,22 +1010,22 @@ export default function OnboardingPage() {
                   <div className="space-y-3">
                     {[
                       {
-                        label: "High-level risks only",
+                        label: "Show me my blind spots",
                         value: "high-level",
                         description:
-                          "I prefer broad signals and directional insights for now.",
+                          "Surface the obligations I'm most likely missing across my countries.",
                       },
                       {
-                        label: "Happy to add rough numbers",
+                        label: "Give me a detailed picture",
                         value: "rough-numbers",
                         description:
-                          "I can share approximate values and ranges to improve precision.",
+                          "Use my approximate numbers to improve the accuracy of my dashboard.",
                       },
                       {
                         label: "Full precision",
                         value: "full-precision",
                         description:
-                          "I am comfortable providing exact values for maximum accuracy.",
+                          "I'll provide exact figures for maximum accuracy.",
                       },
                     ].map((option) => (
                       <button
