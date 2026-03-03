@@ -83,12 +83,18 @@ type OnboardingAnswers = {
   permitsByCountry: Record<string, string[]>;
   noResidencePermits: boolean;
   abroadAssets: string[];
-  ukNationalInsurance: TriState;
-  australianSuperannuation: TriState;
+  pensionContributions: TriState;
+  pensionContributionCountries: string[];
   relocationPlan: Relocation;
   relocationFrom: string;
   relocationTo: string;
-  role: "employee-executive" | "founder-owner" | "investor" | "retired" | "";
+  role:
+    | "employee-executive"
+    | "founder-owner"
+    | "investor"
+    | "retired"
+    | "other"
+    | "";
   detailLevel: "high-level" | "rough-numbers" | "full-precision" | "";
 };
 
@@ -101,8 +107,8 @@ const INITIAL_ANSWERS: OnboardingAnswers = {
   permitsByCountry: {},
   noResidencePermits: false,
   abroadAssets: [],
-  ukNationalInsurance: "not-sure",
-  australianSuperannuation: "not-sure",
+  pensionContributions: "not-sure",
+  pensionContributionCountries: [],
   relocationPlan: "no",
   relocationFrom: "",
   relocationTo: "",
@@ -156,7 +162,8 @@ function SearchableMultiSelect({
       </div>
       {selected.length > 0 && (
         <p className="text-xs text-white/45">
-          Selected: {selected.length} country{selected.length > 1 ? "ies" : ""}
+          Selected: {selected.length}{" "}
+          {selected.length === 1 ? "country" : "countries"}
         </p>
       )}
     </div>
@@ -188,12 +195,24 @@ export default function OnboardingPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [q4Search, setQ4Search] = useState("");
+  const [pensionSearch, setPensionSearch] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
-  const progress = Math.min((step / 9) * 100, 100);
-  const isConfirmation = step === 9;
+  const QUESTION_STEPS = 9;
+  const AUTH_STEP = 9;
+  const CONFIRMATION_STEP = 10;
+  const progress = Math.min((step / CONFIRMATION_STEP) * 100, 100);
+  const isAuthStep = step === AUTH_STEP;
+  const isConfirmation = step === CONFIRMATION_STEP;
 
   const q4SelectableCountries = COUNTRIES.filter((country) =>
     country.toLowerCase().includes(q4Search.toLowerCase()),
+  );
+  const pensionSelectableCountries = COUNTRIES.filter((country) =>
+    country.toLowerCase().includes(pensionSearch.toLowerCase()),
   );
 
   function stepIsValid(currentStep: number) {
@@ -217,7 +236,10 @@ export default function OnboardingPage() {
       );
     }
     if (currentStep === 4) return answers.abroadAssets.length > 0;
-    if (currentStep === 5) return true;
+    if (currentStep === 5) {
+      if (answers.pensionContributions !== "yes") return true;
+      return answers.pensionContributionCountries.length > 0;
+    }
     if (currentStep === 6) {
       if (answers.relocationPlan !== "yes") return true;
       return Boolean(answers.relocationFrom && answers.relocationTo);
@@ -227,21 +249,7 @@ export default function OnboardingPage() {
     return true;
   }
 
-  async function handleContinue() {
-    setErrorMessage("");
-
-    if (!stepIsValid(step)) {
-      setErrorMessage("Please complete this step before continuing.");
-      return;
-    }
-
-    if (step < 8) {
-      setStep((prev) => prev + 1);
-      return;
-    }
-
-    setIsSaving(true);
-
+  async function saveAnswersForUser() {
     try {
       const {
         data: { user },
@@ -265,7 +273,7 @@ export default function OnboardingPage() {
         throw new Error(error.message);
       }
 
-      setStep(9);
+      setStep(CONFIRMATION_STEP);
       window.setTimeout(() => {
         router.push("/dashboard");
       }, 2400);
@@ -275,8 +283,114 @@ export default function OnboardingPage() {
           ? error.message
           : "Unable to save your onboarding profile.";
       setErrorMessage(message);
+      setIsFinalizing(false);
       setIsSaving(false);
+      setIsAuthLoading(false);
     }
+  }
+
+  async function handleContinue() {
+    setErrorMessage("");
+
+    if (!stepIsValid(step)) {
+      setErrorMessage("Please complete this step before continuing.");
+      return;
+    }
+
+    if (step < QUESTION_STEPS - 1) {
+      setStep((prev) => prev + 1);
+      return;
+    }
+
+    setIsSaving(true);
+    setIsFinalizing(true);
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError) {
+      setErrorMessage(userError.message);
+      setIsSaving(false);
+      setIsFinalizing(false);
+      return;
+    }
+
+    if (user) {
+      await saveAnswersForUser();
+      return;
+    }
+
+    setIsSaving(false);
+    setIsFinalizing(false);
+    setStep(AUTH_STEP);
+  }
+
+  async function handleBack() {
+    setErrorMessage("");
+    if (step > 0 && !isFinalizing) {
+      setStep((prev) => prev - 1);
+    }
+  }
+
+  async function handleOAuthSignUp(provider: "google" | "apple") {
+    setErrorMessage("");
+    setIsAuthLoading(true);
+    const redirectTo = `${window.location.origin}/onboarding`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo },
+    });
+    if (error) {
+      setErrorMessage(error.message);
+      setIsAuthLoading(false);
+    }
+  }
+
+  async function handleEmailSignUp() {
+    setErrorMessage("");
+    if (!email || !password) {
+      setErrorMessage("Please enter both email and password.");
+      return;
+    }
+
+    setIsAuthLoading(true);
+    const redirectTo = `${window.location.origin}/onboarding`;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+      setIsAuthLoading(false);
+      return;
+    }
+
+    // If confirm-email is disabled, user may already be signed in.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      setIsFinalizing(true);
+      await saveAnswersForUser();
+      return;
+    }
+
+    setIsAuthLoading(false);
+    setErrorMessage(
+      "Check your email to confirm your account, then return here to continue.",
+    );
+  }
+
+  async function handleAlreadySignedInContinue() {
+    setErrorMessage("");
+    setIsAuthLoading(true);
+    setIsFinalizing(true);
+    await saveAnswersForUser();
   }
 
   return (
@@ -286,7 +400,7 @@ export default function OnboardingPage() {
         <div className="mb-14 space-y-3">
           <Progress value={progress} />
           <p className="text-xs tracking-[0.2em] text-white/45 uppercase">
-            Step {Math.min(step + 1, 10)} of 10
+            Step {Math.min(step + 1, 11)} of 11
           </p>
         </div>
 
@@ -300,6 +414,85 @@ export default function OnboardingPage() {
               <p className="text-sm text-white/55">
                 Preparing your global profile and routing you to your dashboard.
               </p>
+            </div>
+          </section>
+        ) : isAuthStep ? (
+          <section className="question-fade-in flex flex-1 flex-col">
+            <div className="space-y-9">
+              <SectionTitle
+                title="Create your account to see your personalised intelligence dashboard."
+                subtitle="Secure your profile to save your onboarding answers and unlock your dashboard."
+              />
+              <div className="space-y-4">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => handleOAuthSignUp("google")}
+                  disabled={isAuthLoading || isFinalizing}
+                  className="h-12 w-full justify-center text-sm"
+                >
+                  Continue with Google
+                </Button>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => handleOAuthSignUp("apple")}
+                  disabled={isAuthLoading || isFinalizing}
+                  className="h-12 w-full justify-center text-sm"
+                >
+                  Continue with Apple
+                </Button>
+                <div className="space-y-3 rounded-md border border-white/15 bg-white/5 p-4">
+                  <p className="text-xs tracking-[0.15em] text-white/45 uppercase">
+                    Or create an account with email
+                  </p>
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="h-11"
+                  />
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="h-11"
+                  />
+                  <Button
+                    size="lg"
+                    onClick={handleEmailSignUp}
+                    disabled={isAuthLoading || isFinalizing}
+                    className="h-11 w-full transform-gpu text-sm transition duration-300 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    Create account with email
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 space-y-4">
+              {errorMessage && <p className="text-sm text-red-300">{errorMessage}</p>}
+              <div className="flex items-center gap-3">
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={handleBack}
+                  disabled={isAuthLoading || isFinalizing}
+                  className="h-12 min-w-32 border border-white/20 bg-transparent text-white hover:bg-white/10"
+                >
+                  Back
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={handleAlreadySignedInContinue}
+                  disabled={isAuthLoading || isFinalizing}
+                  className="h-12 min-w-40 transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99]"
+                >
+                  {isFinalizing ? "Saving..." : "I am already signed in"}
+                </Button>
+              </div>
             </div>
           </section>
         ) : (
@@ -577,47 +770,69 @@ export default function OnboardingPage() {
               {step === 5 && (
                 <>
                   <SectionTitle
-                    title="UK National Insurance contributions ever? Australian superannuation account?"
-                    subtitle="These legacy systems can influence obligations and planning opportunities."
+                    title="Do you have any pension, superannuation, or state retirement contributions in any country?"
+                    subtitle="Retirement systems can create ongoing reporting obligations and planning considerations."
                   />
-                  <div className="space-y-8">
-                    {[
-                      {
-                        key: "ukNationalInsurance",
-                        label: "Have you ever made UK National Insurance contributions?",
-                      },
-                      {
-                        key: "australianSuperannuation",
-                        label: "Do you have an Australian superannuation account?",
-                      },
-                    ].map((question) => (
-                      <div key={question.key} className="space-y-3">
-                        <p className="text-sm text-white/75">{question.label}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(["yes", "no", "not-sure"] as const).map((option) => (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() =>
-                                setAnswers((prev) => ({
-                                  ...prev,
-                                  [question.key]: option,
-                                }))
-                              }
-                              className={cn(
-                                "rounded-md border px-4 py-2 text-sm capitalize transition-colors hover:border-white/45",
-                                answers[question.key as keyof OnboardingAnswers] ===
-                                  option
-                                  ? "border-white/65 bg-white/15"
-                                  : "border-white/20 bg-white/5",
-                              )}
+                  <div className="space-y-5">
+                    <div className="flex flex-wrap gap-2">
+                      {(["yes", "no", "not-sure"] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() =>
+                            setAnswers((prev) => ({
+                              ...prev,
+                              pensionContributions: option,
+                              pensionContributionCountries:
+                                option === "yes"
+                                  ? prev.pensionContributionCountries
+                                  : [],
+                            }))
+                          }
+                          className={cn(
+                            "rounded-md border px-4 py-2 text-sm capitalize transition-colors hover:border-white/45",
+                            answers.pensionContributions === option
+                              ? "border-white/65 bg-white/15"
+                              : "border-white/20 bg-white/5",
+                          )}
+                        >
+                          {option === "not-sure" ? "Not sure" : option}
+                        </button>
+                      ))}
+                    </div>
+                    {answers.pensionContributions === "yes" && (
+                      <div className="space-y-3">
+                        <Input
+                          value={pensionSearch}
+                          onChange={(event) => setPensionSearch(event.target.value)}
+                          placeholder="Search countries with pension/super contributions"
+                        />
+                        <div className="max-h-56 space-y-2 overflow-y-auto rounded-md border border-white/15 bg-black/35 p-3">
+                          {pensionSelectableCountries.map((country) => (
+                            <label
+                              key={country}
+                              className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm text-white/85 transition-colors hover:bg-white/10"
                             >
-                              {option === "not-sure" ? "Not sure" : option}
-                            </button>
+                              <Checkbox
+                                checked={answers.pensionContributionCountries.includes(
+                                  country,
+                                )}
+                                onCheckedChange={() =>
+                                  setAnswers((prev) => ({
+                                    ...prev,
+                                    pensionContributionCountries: toggleSelection(
+                                      prev.pensionContributionCountries,
+                                      country,
+                                    ),
+                                  }))
+                                }
+                              />
+                              <span>{country}</span>
+                            </label>
                           ))}
                         </div>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </>
               )}
@@ -695,6 +910,7 @@ export default function OnboardingPage() {
                       { label: "Founder or owner", value: "founder-owner" },
                       { label: "Investor", value: "investor" },
                       { label: "Retired", value: "retired" },
+                      { label: "Other", value: "other" },
                     ].map((option) => (
                       <button
                         key={option.value}
@@ -774,14 +990,31 @@ export default function OnboardingPage() {
 
             <div className="mt-10 space-y-4">
               {errorMessage && <p className="text-sm text-red-300">{errorMessage}</p>}
-              <Button
-                size="lg"
-                onClick={handleContinue}
-                disabled={isSaving}
-                className="h-12 min-w-40 transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99]"
-              >
-                {isSaving ? "Saving..." : step === 8 ? "Finish" : "Continue"}
-              </Button>
+              <div className="flex items-center gap-3">
+                {step > 0 && (
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    onClick={handleBack}
+                    disabled={isSaving || isFinalizing}
+                    className="h-12 min-w-32 border border-white/20 bg-transparent text-white hover:bg-white/10"
+                  >
+                    Back
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  onClick={handleContinue}
+                  disabled={isSaving || isFinalizing}
+                  className="h-12 min-w-40 transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99]"
+                >
+                  {isSaving || isFinalizing
+                    ? "Saving..."
+                    : step === 8
+                      ? "Continue"
+                      : "Continue"}
+                </Button>
+              </div>
             </div>
           </section>
         )}
