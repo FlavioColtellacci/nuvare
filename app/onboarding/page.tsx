@@ -98,13 +98,10 @@ type OnboardingAnswers = {
   relocationPlan: Relocation;
   relocationFrom: string;
   relocationTo: string;
-  role:
-    | "employee-executive"
-    | "founder-owner"
-    | "investor"
-    | "retired"
-    | "other"
-    | "";
+  roles: Array<
+    "employee-executive" | "founder-owner" | "investor" | "retired" | "other"
+  >;
+  otherRole: string;
   detailLevel: "high-level" | "rough-numbers" | "full-precision" | "";
 };
 
@@ -122,7 +119,8 @@ const INITIAL_ANSWERS: OnboardingAnswers = {
   relocationPlan: "no",
   relocationFrom: "",
   relocationTo: "",
-  role: "",
+  roles: [],
+  otherRole: "",
   detailLevel: "",
 };
 
@@ -285,7 +283,11 @@ export default function OnboardingPage() {
       if (answers.relocationPlan !== "yes") return true;
       return Boolean(answers.relocationFrom && answers.relocationTo);
     }
-    if (currentStep === 7) return answers.role !== "";
+    if (currentStep === 7) {
+      if (answers.roles.length === 0) return false;
+      if (answers.roles.includes("other")) return answers.otherRole.trim().length > 0;
+      return true;
+    }
     if (currentStep === 8) return answers.detailLevel !== "";
     return true;
   }
@@ -982,14 +984,27 @@ export default function OnboardingPage() {
                         key={option.value}
                         type="button"
                         onClick={() =>
-                          setAnswers((prev) => ({
-                            ...prev,
-                            role: option.value as OnboardingAnswers["role"],
-                          }))
+                          setAnswers((prev) => {
+                            const roleValue =
+                              option.value as OnboardingAnswers["roles"][number];
+                            const nextRoles = prev.roles.includes(roleValue)
+                              ? prev.roles.filter((role) => role !== roleValue)
+                              : [...prev.roles, roleValue];
+
+                            return {
+                              ...prev,
+                              roles: nextRoles,
+                              otherRole: nextRoles.includes("other")
+                                ? prev.otherRole
+                                : "",
+                            };
+                          })
                         }
                         className={cn(
                           "rounded-md border px-4 py-4 text-left text-sm transition-colors hover:border-white/45",
-                          answers.role === option.value
+                          answers.roles.includes(
+                            option.value as OnboardingAnswers["roles"][number],
+                          )
                             ? "border-white/65 bg-white/15 text-white"
                             : "border-white/20 bg-white/5 text-white/80",
                         )}
@@ -998,6 +1013,19 @@ export default function OnboardingPage() {
                       </button>
                     ))}
                   </div>
+                  {answers.roles.includes("other") && (
+                    <Input
+                      value={answers.otherRole}
+                      onChange={(event) =>
+                        setAnswers((prev) => ({
+                          ...prev,
+                          otherRole: event.target.value,
+                        }))
+                      }
+                      placeholder="Tell us your role"
+                      className="h-11"
+                    />
+                  )}
                 </>
               )}
 
