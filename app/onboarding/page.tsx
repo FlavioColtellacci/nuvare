@@ -206,6 +206,7 @@ export default function OnboardingPage() {
   const [pensionSearch, setPensionSearch] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSignInMode, setIsSignInMode] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
 
@@ -296,11 +297,10 @@ export default function OnboardingPage() {
     try {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        throw new Error("You need to be signed in to finish onboarding.");
+      if (!user) {
+        throw new Error("Please sign in to continue.");
       }
 
       const { error } = await supabase.from("user_profiles").upsert(
@@ -345,28 +345,6 @@ export default function OnboardingPage() {
       return;
     }
 
-    setIsSaving(true);
-    setIsFinalizing(true);
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError) {
-      setErrorMessage(userError.message);
-      setIsSaving(false);
-      setIsFinalizing(false);
-      return;
-    }
-
-    if (user) {
-      await saveAnswersForUser();
-      return;
-    }
-
-    setIsSaving(false);
-    setIsFinalizing(false);
     setStep(AUTH_STEP);
   }
 
@@ -391,7 +369,7 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleEmailSignUp() {
+  async function handleEmailAuth() {
     setErrorMessage("");
     if (!email || !password) {
       setErrorMessage("Please enter both email and password.");
@@ -399,12 +377,11 @@ export default function OnboardingPage() {
     }
 
     setIsAuthLoading(true);
-    const redirectTo = `${window.location.origin}/onboarding`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
+    const authCall = isSignInMode
+      ? supabase.auth.signInWithPassword({ email, password })
+      : supabase.auth.signUp({ email, password });
+
+    const { error } = await authCall;
 
     if (error) {
       setErrorMessage(error.message);
@@ -412,26 +389,12 @@ export default function OnboardingPage() {
       return;
     }
 
-    // If confirm-email is disabled, user may already be signed in.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      setIsFinalizing(true);
-      await saveAnswersForUser();
-      return;
+    // For email sign-up flows where session is not returned immediately,
+    // try to create a session explicitly before finalizing.
+    if (!isSignInMode) {
+      await supabase.auth.signInWithPassword({ email, password });
     }
 
-    setIsAuthLoading(false);
-    setErrorMessage(
-      "Check your email to confirm your account, then return here to continue.",
-    );
-  }
-
-  async function handleAlreadySignedInContinue() {
-    setErrorMessage("");
-    setIsAuthLoading(true);
     setIsFinalizing(true);
     await saveAnswersForUser();
   }
@@ -512,7 +475,9 @@ export default function OnboardingPage() {
                 </Button>
                 <div className="space-y-3 rounded-md border border-white/15 bg-white/5 p-4">
                   <p className="text-xs tracking-[0.15em] text-white/45 uppercase">
-                    Or create an account with email
+                    {isSignInMode
+                      ? "Sign in with email"
+                      : "Or create an account with email"}
                   </p>
                   <Input
                     type="email"
@@ -530,12 +495,24 @@ export default function OnboardingPage() {
                   />
                   <Button
                     size="lg"
-                    onClick={handleEmailSignUp}
+                    onClick={handleEmailAuth}
                     disabled={isAuthLoading || isFinalizing}
                     className="h-11 w-full transform-gpu text-sm transition duration-300 hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    Create account with email
+                    {isSignInMode ? "Sign in" : "Create Account"}
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMessage("");
+                      setIsSignInMode((prev) => !prev);
+                    }}
+                    className="text-left text-sm text-white/60 underline underline-offset-4 transition-colors hover:text-white/85"
+                  >
+                    {isSignInMode
+                      ? "Need an account? Create one"
+                      : "Already have an account? Sign in"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -552,14 +529,9 @@ export default function OnboardingPage() {
                 >
                   Back
                 </Button>
-                <Button
-                  size="lg"
-                  onClick={handleAlreadySignedInContinue}
-                  disabled={isAuthLoading || isFinalizing}
-                  className="h-12 min-w-40 transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99]"
-                >
-                  {isFinalizing ? "Saving..." : "I am already signed in"}
-                </Button>
+                {isFinalizing ? (
+                  <p className="text-sm text-white/60">Saving your profile...</p>
+                ) : null}
               </div>
             </div>
           </section>
