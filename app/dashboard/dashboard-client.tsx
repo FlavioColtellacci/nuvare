@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,21 @@ type OnboardingAnswers = {
   [key: string]: unknown;
 };
 
+type ChatRole = "user" | "assistant";
+
+type ChatMessage = {
+  id: string;
+  role: ChatRole;
+  content: string;
+};
+
+function createId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function formatDate(dateString: string) {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat("en-GB", {
@@ -42,15 +56,6 @@ function formatDate(dateString: string) {
     month: "short",
     year: "numeric",
   }).format(date);
-}
-
-function todayLabel() {
-  return new Intl.DateTimeFormat("en-GB", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  }).format(new Date());
 }
 
 function daysRemaining(dueDate: string) {
@@ -193,20 +198,33 @@ function generateDeadlinesFromAnswers(answers: OnboardingAnswers): Deadline[] {
 export default function DashboardClient({
   userId,
   userEmail,
+  hasProfile,
   onboardingAnswers,
   initialManualDeadlines,
 }: {
   userId: string;
   userEmail: string;
+  hasProfile: boolean;
   onboardingAnswers: OnboardingAnswers;
   initialManualDeadlines: ManualDeadline[];
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const feedRef = useRef<HTMLDivElement | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [input, setInput] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: createId(),
+      role: "assistant",
+      content:
+        "Ask anything about your cross-border compliance setup and I will tailor the guidance to your profile.",
+    },
+  ]);
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
   const [form, setForm] = useState({
@@ -231,10 +249,100 @@ export default function DashboardClient({
     );
   }, [generatedDeadlines, manualDeadlines]);
 
+  const chatSessions = useMemo(
+    () => [
+      { id: "session-1", title: "Residency setup review" },
+      { id: "session-2", title: "UAE visa renewal checklist" },
+      { id: "session-3", title: "US filing obligations" },
+      { id: "session-4", title: "Cross-border income treatment" },
+      { id: "session-5", title: "Tax deadline prioritization" },
+    ],
+    [],
+  );
+
+  useEffect(() => {
+    if (!feedRef.current) return;
+    feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  }, [messages, isLoading]);
+
   async function handleSignOut() {
     setIsSigningOut(true);
     await supabase.auth.signOut();
     router.push("/onboarding");
+  }
+
+  async function submitQuestion() {
+    const question = input.trim();
+    if (!question || isLoading) return;
+
+    const nextUserMessage: ChatMessage = {
+      id: createId(),
+      role: "user",
+      content: question,
+    };
+
+    const nextMessages = [...messages, nextUserMessage];
+    setMessages(nextMessages);
+    setInput("");
+    setErrorMessage("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: nextMessages.map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(payload?.error ?? "Unable to generate response.");
+      }
+
+      const payload = (await response.json()) as { answer?: string };
+      const answer = payload.answer?.trim();
+
+      if (!answer) {
+        throw new Error("AI returned an empty response.");
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: createId(),
+          role: "assistant",
+          content: answer,
+        },
+      ]);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to generate response.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleNewChat() {
+    setMessages([
+      {
+        id: createId(),
+        role: "assistant",
+        content:
+          "Ask anything about your cross-border compliance setup and I will tailor the guidance to your profile.",
+      },
+    ]);
+    setInput("");
+    setErrorMessage("");
   }
 
   async function saveManualDeadlines(nextManualDeadlines: ManualDeadline[]) {
@@ -291,111 +399,172 @@ export default function DashboardClient({
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black text-white">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
-      <div className="relative mx-auto min-h-screen max-w-6xl px-6 py-8 md:px-10">
-        <nav className="mb-16 flex items-center justify-between">
-          <p className="font-editorial text-xl tracking-[0.25em] text-[#d9d9d9]">
-            NUVARE
-          </p>
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              href="/ask"
-              className="rounded-md px-3 py-2 text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              Ask
-            </Link>
-            <p className="text-white/55">{userEmail}</p>
+      <div className="relative min-h-screen">
+        <aside className="fixed inset-y-0 left-0 z-20 w-[260px] border-r border-white/12 bg-[#070707]/95 backdrop-blur-sm">
+          <div className="flex h-full flex-col p-4">
+            <p className="font-editorial text-xl tracking-[0.25em] text-[#d9d9d9]">NUVARE</p>
             <Button
-              variant="ghost"
-              size="lg"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="h-9 px-3 text-white/80 hover:bg-white/10 hover:text-white"
+              onClick={handleNewChat}
+              className="mt-6 h-10 w-full border border-white/20 bg-transparent text-white hover:bg-white/10"
             >
-              {isSigningOut ? "Signing out..." : "Sign Out"}
+              New Chat
             </Button>
-          </div>
-        </nav>
 
-        <section className="mb-12 space-y-3">
-          <h1 className="font-editorial text-4xl text-white md:text-5xl">
-            Your compliance dashboard
-          </h1>
-          <p className="text-sm text-white/50">{todayLabel()}</p>
-        </section>
-
-        <section className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-editorial text-2xl text-white">Deadlines</h2>
-            <Button
-              size="lg"
-              variant="secondary"
-              onClick={() => {
-                setErrorMessage("");
-                setIsModalOpen(true);
-              }}
-              className="h-10 border border-white/20 bg-transparent text-white hover:bg-white/10"
-            >
-              Add deadline
-            </Button>
-          </div>
-
-          {allDeadlines.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-[#111111] p-8 text-center">
-              <p className="font-editorial text-2xl text-white">
-                No deadlines tracked yet
+            <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+              <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/45">
+                Past chats
               </p>
-              <p className="mt-2 text-sm text-white/55">
-                Complete your profile to generate compliance milestones.
-              </p>
-              <Button
-                size="lg"
-                variant="secondary"
-                onClick={() => router.push("/onboarding")}
-                className="mt-6 border border-white/20 bg-transparent text-white hover:bg-white/10"
-              >
-                Complete profile
-              </Button>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {allDeadlines.map((deadline) => {
-                const days = daysRemaining(deadline.dueDate);
-                return (
-                  <article
-                    key={deadline.id}
-                    className="rounded-xl border border-white/12 bg-[#111111] p-5"
+              <div className="space-y-2">
+                {chatSessions.map((session) => (
+                  <button
+                    key={session.id}
+                    type="button"
+                    className="w-full rounded-lg border border-white/12 bg-[#111111] px-3 py-2 text-left text-sm text-white/85 transition-colors hover:bg-white/10"
                   >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg text-white">
+                    {session.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <section className="mt-4 border-t border-white/10 pt-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/45">Deadlines</p>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => {
+                    setErrorMessage("");
+                    setIsModalOpen(true);
+                  }}
+                  className="h-8 border border-white/20 bg-transparent px-2 text-xs text-white hover:bg-white/10"
+                >
+                  Add deadline
+                </Button>
+              </div>
+
+              {allDeadlines.length === 0 ? (
+                <div className="rounded-lg border border-white/12 bg-[#111111] p-3">
+                  <p className="text-xs text-white/55">No deadlines tracked yet.</p>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    onClick={() => router.push("/onboarding")}
+                    className="mt-3 h-8 w-full border border-white/20 bg-transparent text-xs text-white hover:bg-white/10"
+                  >
+                    Complete profile
+                  </Button>
+                </div>
+              ) : (
+                <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+                  {allDeadlines.map((deadline) => {
+                    const days = daysRemaining(deadline.dueDate);
+                    return (
+                      <article
+                        key={deadline.id}
+                        className="rounded-lg border border-white/12 bg-[#111111] p-3"
+                      >
+                        <p className="text-xs text-white/90">
                           {countryFlag(deadline.country)} {deadline.title}
                         </p>
-                        <p className="mt-1 text-xs text-white/45">{deadline.country}</p>
-                      </div>
-                      <span
-                        className={cn(
-                          "rounded-full px-2.5 py-1 text-xs",
-                          getUrgencyColor(days),
-                        )}
-                      >
-                        {days <= 0 ? "Due now" : `${days} days`}
-                      </span>
-                    </div>
-                    <p className="text-sm text-white/60">
-                      Due date: {formatDate(deadline.dueDate)}
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <p className="text-[11px] text-white/50">{formatDate(deadline.dueDate)}</p>
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-[10px]",
+                              getUrgencyColor(days),
+                            )}
+                          >
+                            {days <= 0 ? "Due now" : `${days}d`}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="mt-4 border-t border-white/10 pt-4">
+              <p className="truncate text-xs text-white/55">{userEmail}</p>
+              <Button
+                variant="ghost"
+                size="lg"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="mt-2 h-9 w-full justify-start px-2 text-white/80 hover:bg-white/10 hover:text-white"
+              >
+                {isSigningOut ? "Signing out..." : "Sign Out"}
+              </Button>
+            </section>
+          </div>
+        </aside>
+
+        <div className="ml-[260px] flex min-h-screen flex-col">
+          <section className="flex h-screen flex-col px-6 py-6 md:px-10">
+            {!hasProfile ? (
+              <p className="mb-4 text-sm text-amber-300">
+                Your profile is incomplete. Answers may be less personalized until onboarding is
+                finished.
+              </p>
+            ) : null}
+
+            <div
+              ref={feedRef}
+              className="mb-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-white/12 bg-[#0b0b0b]/70 p-4 md:p-5"
+            >
+              {messages.map((message) => (
+                <article
+                  key={message.id}
+                  className={
+                    message.role === "user"
+                      ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
+                      : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
+                  }
+                >
+                  <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+                    {message.role === "user" ? "You" : "Nuvare AI"}
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                    {message.content}
+                  </p>
+                  {message.role === "assistant" ? (
+                    <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
+                      This is informational only, not legal or financial advice.
                     </p>
-                    <p className="mt-1 text-sm text-white/50">
-                      Days remaining: {days <= 0 ? 0 : days}
-                    </p>
-                    {deadline.notes ? (
-                      <p className="mt-2 text-xs text-white/45">{deadline.notes}</p>
-                    ) : null}
-                  </article>
-                );
-              })}
+                  ) : null}
+                </article>
+              ))}
+              {isLoading ? <p className="text-sm text-white/50">Nuvare AI is thinking...</p> : null}
             </div>
-          )}
-        </section>
+
+            <section className="rounded-xl border border-white/12 bg-[#101010] p-4">
+              <Textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
+                className="min-h-24 resize-none border-white/15 bg-black/40"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void submitQuestion();
+                  }
+                }}
+              />
+              <div className="mt-3 flex items-center justify-between">
+                <p className="text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
+                <Button
+                  onClick={() => void submitQuestion()}
+                  disabled={isLoading || !input.trim()}
+                  className="h-10"
+                >
+                  {isLoading ? "Thinking..." : "Ask"}
+                </Button>
+              </div>
+              {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
+            </section>
+          </section>
+        </div>
 
         {isModalOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

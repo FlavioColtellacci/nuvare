@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
 import DashboardClient, { type ManualDeadline } from "@/app/dashboard/dashboard-client";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +10,10 @@ type OnboardingAnswers = {
   abroadAssets?: string[];
   manualDeadlines?: ManualDeadline[];
   [key: string]: unknown;
+};
+
+export const metadata: Metadata = {
+  title: "Nuvare",
 };
 
 export default async function DashboardPage() {
@@ -37,6 +42,7 @@ export default async function DashboardPage() {
     <DashboardClient
       userId={user.id}
       userEmail={user.email ?? "Signed-in user"}
+      hasProfile={Boolean(profile)}
       onboardingAnswers={onboardingAnswers}
       initialManualDeadlines={manualDeadlines}
     />
