@@ -1134,7 +1134,7 @@ export default function DashboardClient({
               ) : null}
             </div>
 
-            <section className="rounded-xl border border-white/12 bg-[#101010] p-4">
+            <section className="p-4">
               <div className="flex items-start gap-3">
                 <button
                   type="button"
@@ -1144,25 +1144,7 @@ export default function DashboardClient({
                 >
                   +
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsDeepResearch((prev) => !prev)}
-                  disabled={isLoading}
-                  className={cn(
-                    "mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
-                    isDeepResearch
-                      ? "border-white/35 bg-white/12 text-white"
-                      : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
-                    isLoading ? "cursor-not-allowed opacity-60" : "",
-                  )}
-                  aria-pressed={isDeepResearch}
-                  aria-label="Toggle deep research mode"
-                  title="Deep research"
-                >
-                  <span aria-hidden>🔭</span>
-                  <span>Deep research</span>
-                </button>
-                <div className="min-w-0 flex-1">
+                <div className="min-w-0 flex-1 rounded-xl border border-white/12 bg-[#101010] p-4">
                   {selectedUploadFile ? (
                     <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-xs text-white/80">
                       <span className="truncate">{selectedUploadFile.name}</span>
@@ -1180,7 +1162,7 @@ export default function DashboardClient({
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-                    className="min-h-24 resize-none border-white/15 bg-black/40"
+                    className="min-h-24 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -1195,25 +1177,47 @@ export default function DashboardClient({
                     className="hidden"
                     onChange={handleFilePickerSelection}
                   />
+                  <div className="mt-3 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setIsDeepResearch((prev) => !prev)}
+                      disabled={isLoading}
+                      className={cn(
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                        isDeepResearch
+                          ? "border-white/35 bg-white/12 text-white"
+                          : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
+                        isLoading ? "cursor-not-allowed opacity-60" : "",
+                      )}
+                      aria-pressed={isDeepResearch}
+                      aria-label="Toggle deep research mode"
+                      title="Deep research"
+                    >
+                      <span aria-hidden>🔭</span>
+                      <span>Deep research</span>
+                    </button>
+                    {isLoading ? (
+                      <Button
+                        onClick={() => void stopGeneration()}
+                        className="h-10 w-10 px-0"
+                        title="Stop"
+                      >
+                        ■
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => void submitQuestion()}
+                        disabled={!input.trim()}
+                        className="h-10 w-10 px-0"
+                        title="Send"
+                      >
+                        ↑
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-between">
-                <p className="text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
-                {isLoading ? (
-                  <Button onClick={() => void stopGeneration()} className="h-10 w-10 px-0" title="Stop">
-                    ■
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => void submitQuestion()}
-                    disabled={!input.trim()}
-                    className="h-10 w-10 px-0"
-                    title="Send"
-                  >
-                    ↑
-                  </Button>
-                )}
-              </div>
+              <p className="mt-3 text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
               <p className="mt-2 text-xs text-white/45">
                 This is informational only, not legal or financial advice.
               </p>
