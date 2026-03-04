@@ -227,6 +227,56 @@ function stripTrailingDots(text: string) {
   return text.replace(/\.+$/, "");
 }
 
+function splitAssistantContent(content: string) {
+  const normalized = content.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const sourcesLineIndex = lines.findIndex((line) => {
+    const trimmed = line.trim();
+    return /^#{1,6}\s*sources\s*$/i.test(trimmed) || /^sources\s*:?\s*$/i.test(trimmed);
+  });
+
+  if (sourcesLineIndex === -1) {
+    return {
+      mainContent: normalized.trimEnd(),
+      sourcesContent: "",
+    };
+  }
+
+  const sourcesHeading = lines[sourcesLineIndex]?.trim() ?? "";
+  const inlineSourceMatch =
+    /^sources\s*:\s*(.+)$/i.exec(sourcesHeading) ?? /^#{1,6}\s*sources\s*:\s*(.+)$/i.exec(sourcesHeading);
+
+  const mainContent = lines.slice(0, sourcesLineIndex).join("\n").trimEnd();
+  const listAfterHeading = lines.slice(sourcesLineIndex + 1).join("\n").trim();
+  const inlineSource = inlineSourceMatch?.[1]?.trim() ?? "";
+  const sourcesContent = [inlineSource, listAfterHeading].filter(Boolean).join("\n").trim();
+
+  return {
+    mainContent,
+    sourcesContent,
+  };
+}
+
+function extractSourceItems(sourcesContent: string) {
+  if (!sourcesContent.trim()) return [];
+
+  const lines = sourcesContent
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const listItems = lines
+    .map((line) => {
+      const match = /^([-*+]|\d+\.)\s+(.+)$/.exec(line);
+      return match?.[2]?.trim() ?? null;
+    })
+    .filter((item): item is string => Boolean(item));
+
+  if (listItems.length > 0) return listItems;
+
+  return lines;
+}
+
 function generateDeadlinesFromAnswers(answers: OnboardingAnswers): Deadline[] {
   const results: Deadline[] = [];
   const citizenships = answers.citizenships ?? [];
@@ -330,6 +380,10 @@ export default function DashboardClient({
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [expandedSourcesByMessageId, setExpandedSourcesByMessageId] = useState<
+    Record<string, boolean>
+  >({});
+  const [copiedSourceKey, setCopiedSourceKey] = useState<string | null>(null);
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
   const [form, setForm] = useState({
@@ -514,8 +568,29 @@ export default function DashboardClient({
 
   function handleNewChat() {
     setMessages([]);
+    setExpandedSourcesByMessageId({});
+    setCopiedSourceKey(null);
     setInput("");
     setErrorMessage("");
+  }
+
+  function toggleSourcesPanel(messageId: string) {
+    setExpandedSourcesByMessageId((prev) => ({
+      ...prev,
+      [messageId]: !prev[messageId],
+    }));
+  }
+
+  async function copySourceText(sourceText: string, sourceKey: string) {
+    try {
+      await navigator.clipboard.writeText(sourceText);
+      setCopiedSourceKey(sourceKey);
+      window.setTimeout(() => {
+        setCopiedSourceKey((current) => (current === sourceKey ? null : current));
+      }, 1200);
+    } catch {
+      setErrorMessage("Unable to copy source text.");
+    }
   }
 
   async function saveManualDeadlines(nextManualDeadlines: ManualDeadline[]) {
@@ -706,89 +781,141 @@ export default function DashboardClient({
                   </div>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <article
-                    key={message.id}
-                    className={
-                      message.role === "user"
-                        ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
-                        : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
-                    }
-                  >
-                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
-                      {message.role === "user" ? "You" : "Nuvare AI"}
-                    </p>
-                    {message.role === "assistant" ? (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
-                            <h1 className="mb-3 text-lg font-semibold text-white">{children}</h1>
-                          ),
-                          h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
-                            <h2 className="mb-2 text-base font-semibold text-white">{children}</h2>
-                          ),
-                          h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
-                            <h3 className="mb-2 text-sm font-semibold text-white">{children}</h3>
-                          ),
-                          p: ({ children }: ComponentPropsWithoutRef<"p">) => (
-                            <p className="mb-2 text-sm leading-6 text-white/90 last:mb-0">{children}</p>
-                          ),
-                          strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
-                            <strong className="font-semibold text-white">{children}</strong>
-                          ),
-                          ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
-                            <ul className="mb-2 list-disc space-y-1 pl-5 text-sm text-white/90">
-                              {children}
-                            </ul>
-                          ),
-                          ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
-                            <ol className="mb-2 list-decimal space-y-1 pl-5 text-sm text-white/90">
-                              {children}
-                            </ol>
-                          ),
-                          li: ({ children }: ComponentPropsWithoutRef<"li">) => <li>{children}</li>,
-                          hr: () => <hr className="my-3 border-white/15" />,
-                          table: ({ children }: ComponentPropsWithoutRef<"table">) => (
-                            <div className="my-2 overflow-x-auto">
-                              <table className="w-full border-collapse text-left text-sm text-white/90">
-                                {children}
-                              </table>
+                messages.map((message) => {
+                  const { mainContent, sourcesContent } =
+                    message.role === "assistant"
+                      ? splitAssistantContent(message.content)
+                      : { mainContent: message.content, sourcesContent: "" };
+                  const sourceItems =
+                    message.role === "assistant" ? extractSourceItems(sourcesContent) : [];
+                  const isSourcesExpanded = expandedSourcesByMessageId[message.id] ?? false;
+
+                  return (
+                    <article
+                      key={message.id}
+                      className={
+                        message.role === "user"
+                          ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
+                          : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
+                      }
+                    >
+                      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+                        {message.role === "user" ? "You" : "Nuvare AI"}
+                      </p>
+                      {message.role === "assistant" ? (
+                        <>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
+                                <h1 className="mb-3 text-lg font-semibold text-white">{children}</h1>
+                              ),
+                              h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
+                                <h2 className="mb-2 text-base font-semibold text-white">{children}</h2>
+                              ),
+                              h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
+                                <h3 className="mb-2 text-sm font-semibold text-white">{children}</h3>
+                              ),
+                              p: ({ children }: ComponentPropsWithoutRef<"p">) => (
+                                <p className="mb-2 text-sm leading-6 text-white/90 last:mb-0">{children}</p>
+                              ),
+                              strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
+                                <strong className="font-semibold text-white">{children}</strong>
+                              ),
+                              ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
+                                <ul className="mb-2 list-disc space-y-1 pl-5 text-sm text-white/90">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
+                                <ol className="mb-2 list-decimal space-y-1 pl-5 text-sm text-white/90">
+                                  {children}
+                                </ol>
+                              ),
+                              li: ({ children }: ComponentPropsWithoutRef<"li">) => (
+                                <li>{children}</li>
+                              ),
+                              hr: () => <hr className="my-3 border-white/15" />,
+                              table: ({ children }: ComponentPropsWithoutRef<"table">) => (
+                                <div className="my-2 overflow-x-auto">
+                                  <table className="w-full border-collapse text-left text-sm text-white/90">
+                                    {children}
+                                  </table>
+                                </div>
+                              ),
+                              thead: ({ children }: ComponentPropsWithoutRef<"thead">) => (
+                                <thead className="bg-white/5 text-white">{children}</thead>
+                              ),
+                              tbody: ({ children }: ComponentPropsWithoutRef<"tbody">) => (
+                                <tbody>{children}</tbody>
+                              ),
+                              tr: ({ children }: ComponentPropsWithoutRef<"tr">) => (
+                                <tr className="border-b border-white/10 last:border-b-0">{children}</tr>
+                              ),
+                              th: ({ children }: ComponentPropsWithoutRef<"th">) => (
+                                <th className="border border-white/10 px-2 py-1.5 font-medium">
+                                  {children}
+                                </th>
+                              ),
+                              td: ({ children }: ComponentPropsWithoutRef<"td">) => (
+                                <td className="border border-white/10 px-2 py-1.5">{children}</td>
+                              ),
+                            }}
+                          >
+                            {mainContent}
+                          </ReactMarkdown>
+
+                          {sourceItems.length > 0 ? (
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleSourcesPanel(message.id)}
+                                className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white"
+                              >
+                                📎 Sources
+                              </button>
+                              {isSourcesExpanded ? (
+                                <div className="mt-2 rounded-lg border border-white/12 bg-[#0a0a0a] p-3 text-xs text-white/65">
+                                  <ul className="space-y-2">
+                                    {sourceItems.map((source, index) => {
+                                      const sourceKey = `${message.id}-${index}`;
+                                      return (
+                                        <li
+                                          key={sourceKey}
+                                          className="flex items-start justify-between gap-2"
+                                        >
+                                          <span className="leading-5">{source}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => void copySourceText(source, sourceKey)}
+                                            className="shrink-0 rounded border border-white/15 bg-transparent px-1.5 py-0.5 text-[11px] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                                            aria-label={`Copy source ${index + 1}`}
+                                            title="Copy source"
+                                          >
+                                            {copiedSourceKey === sourceKey ? "✓" : "⧉"}
+                                          </button>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              ) : null}
                             </div>
-                          ),
-                          thead: ({ children }: ComponentPropsWithoutRef<"thead">) => (
-                            <thead className="bg-white/5 text-white">{children}</thead>
-                          ),
-                          tbody: ({ children }: ComponentPropsWithoutRef<"tbody">) => (
-                            <tbody>{children}</tbody>
-                          ),
-                          tr: ({ children }: ComponentPropsWithoutRef<"tr">) => (
-                            <tr className="border-b border-white/10 last:border-b-0">{children}</tr>
-                          ),
-                          th: ({ children }: ComponentPropsWithoutRef<"th">) => (
-                            <th className="border border-white/10 px-2 py-1.5 font-medium">
-                              {children}
-                            </th>
-                          ),
-                          td: ({ children }: ComponentPropsWithoutRef<"td">) => (
-                            <td className="border border-white/10 px-2 py-1.5">{children}</td>
-                          ),
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    ) : (
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
-                        {message.content}
-                      </p>
-                    )}
-                    {message.role === "assistant" ? (
-                      <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
-                        This is informational only, not legal or financial advice.
-                      </p>
-                    ) : null}
-                  </article>
-                ))
+                          ) : null}
+                        </>
+                      ) : (
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                          {message.content}
+                        </p>
+                      )}
+                      {message.role === "assistant" ? (
+                        <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
+                          This is informational only, not legal or financial advice.
+                        </p>
+                      ) : null}
+                    </article>
+                  );
+                })
               )}
               {isLoading ? (
                 <p
