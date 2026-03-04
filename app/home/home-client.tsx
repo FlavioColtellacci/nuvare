@@ -51,6 +51,12 @@ type ChatMessage = {
   content: string;
 };
 
+type ConversationSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+};
+
 const DEFAULT_THINKING_PHRASES = [
   "Analysing your profile...",
   "Reviewing your residency setup...",
@@ -404,8 +410,11 @@ export default function DashboardClient({
   const activeStreamReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const stopGenerationRequestedRef = useRef(false);
+  const activeConversationIdRef = useRef<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [isLoadingConversationMessages, setIsLoadingConversationMessages] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
   const [isDeepResearchHovered, setIsDeepResearchHovered] = useState(false);
   const [input, setInput] = useState("");
@@ -416,6 +425,8 @@ export default function DashboardClient({
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [chatSessions, setChatSessions] = useState<ConversationSummary[]>([]);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [expandedSourcesByMessageId, setExpandedSourcesByMessageId] = useState<
     Record<string, boolean>
   >({});
@@ -447,17 +458,6 @@ export default function DashboardClient({
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
   }, [generatedDeadlines, manualDeadlines]);
-
-  const chatSessions = useMemo(
-    () => [
-      { id: "session-1", title: "Residency setup review" },
-      { id: "session-2", title: "UAE visa renewal checklist" },
-      { id: "session-3", title: "US filing obligations" },
-      { id: "session-4", title: "Cross-border income treatment" },
-      { id: "session-5", title: "Tax deadline prioritization" },
-    ],
-    [],
-  );
 
   function isNearFeedBottom(element: HTMLDivElement, threshold = 100) {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -601,9 +601,164 @@ export default function DashboardClient({
     router.push("/onboarding");
   }
 
+  function upsertConversationInSidebar(nextConversation: ConversationSummary) {
+    setChatSessions((prev) =>
+      [nextConversation, ...prev.filter((conversation) => conversation.id !== nextConversation.id)]
+        .sort(
+          (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        )
+        .slice(0),
+    );
+  }
+
+  async function touchConversationUpdatedAt(conversationId: string) {
+    const updatedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from("conversations")
+      .update({ updated_at: updatedAt })
+      .eq("id", conversationId)
+      .eq("user_id", userId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    setChatSessions((prev) =>
+      prev
+        .map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, updatedAt }
+            : conversation,
+        )
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    );
+  }
+
+  async function persistMessage(
+    conversationId: string,
+    role: ChatRole,
+    content: string,
+  ) {
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      role,
+      content,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    await touchConversationUpdatedAt(conversationId);
+  }
+
+  async function createConversationForFirstMessage(firstMessage: string) {
+    const title = firstMessage.slice(0, 60);
+    const { data, error } = await supabase
+      .from("conversations")
+      .insert({
+        user_id: userId,
+        title,
+      })
+      .select("id, title, updated_at")
+      .single();
+
+    if (error || !data) {
+      throw new Error(error?.message ?? "Unable to create conversation.");
+    }
+
+    const conversation: ConversationSummary = {
+      id: data.id as string,
+      title: (data.title as string | null) ?? "Untitled chat",
+      updatedAt: data.updated_at as string,
+    };
+
+    activeConversationIdRef.current = conversation.id;
+    setSelectedConversationId(conversation.id);
+    upsertConversationInSidebar(conversation);
+    return conversation.id;
+  }
+
+  async function ensureConversationForMessage(firstMessage: string) {
+    if (activeConversationIdRef.current) {
+      return activeConversationIdRef.current;
+    }
+
+    return createConversationForFirstMessage(firstMessage);
+  }
+
+  async function loadConversations() {
+    setIsLoadingConversations(true);
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, title, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+    setIsLoadingConversations(false);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    const nextSessions: ConversationSummary[] = (data ?? []).map((conversation) => ({
+      id: conversation.id as string,
+      title: (conversation.title as string | null) ?? "Untitled chat",
+      updatedAt: conversation.updated_at as string,
+    }));
+    setChatSessions(nextSessions);
+  }
+
+  async function loadConversationMessages(conversationId: string) {
+    if (isLoading) return;
+
+    resetStreamingState();
+    setIsLoading(false);
+    setIsLoadingConversationMessages(true);
+    setErrorMessage("");
+    setCopiedSourceKey(null);
+    setCopiedUserMessageId(null);
+    setEditingUserMessageId(null);
+    setEditingUserMessageDraft("");
+    setExpandedSourcesByMessageId({});
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, role, content")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+    setIsLoadingConversationMessages(false);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    const nextMessages: ChatMessage[] = (data ?? [])
+      .filter(
+        (message): message is { id: string; role: ChatRole; content: string } =>
+          (message.role === "user" || message.role === "assistant") &&
+          typeof message.content === "string",
+      )
+      .map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+      }));
+
+    activeConversationIdRef.current = conversationId;
+    setSelectedConversationId(conversationId);
+    setMessages(nextMessages);
+  }
+
+  useEffect(() => {
+    void loadConversations();
+  }, [supabase, userId]);
+
   async function streamAssistantResponse(
     nextMessages: ChatMessage[],
     question: string,
+    conversationId: string,
     options?: { clearInput?: boolean },
   ) {
     abortControllerRef.current?.abort();
@@ -666,6 +821,7 @@ export default function DashboardClient({
       activeStreamReaderRef.current = reader;
       const decoder = new TextDecoder();
       let hasReceivedText = false;
+      let fullAssistantResponse = "";
 
       while (true) {
         const { value, done } = await reader.read();
@@ -676,6 +832,7 @@ export default function DashboardClient({
         if (!chunk) continue;
 
         hasReceivedText = true;
+        fullAssistantResponse += chunk;
         assistantCharacterQueueRef.current.push(...Array.from(chunk));
         startAssistantTypewriter();
       }
@@ -683,6 +840,7 @@ export default function DashboardClient({
       const trailingChunk = decoder.decode();
       if (trailingChunk) {
         hasReceivedText = true;
+        fullAssistantResponse += trailingChunk;
         assistantCharacterQueueRef.current.push(...Array.from(trailingChunk));
         startAssistantTypewriter();
       }
@@ -694,6 +852,8 @@ export default function DashboardClient({
       if (!hasReceivedText) {
         throw new Error("AI returned an empty response.");
       }
+
+      await persistMessage(conversationId, "assistant", fullAssistantResponse);
     } catch (error) {
       const isAbortError =
         (error instanceof DOMException && error.name === "AbortError") ||
@@ -744,7 +904,18 @@ export default function DashboardClient({
       content: question,
     };
     const nextMessages = [...messages, nextUserMessage];
-    await streamAssistantResponse(nextMessages, question, { clearInput: true });
+
+    setMessages(nextMessages);
+    setInput("");
+    setErrorMessage("");
+
+    try {
+      const conversationId = await ensureConversationForMessage(question);
+      await persistMessage(conversationId, "user", question);
+      await streamAssistantResponse(nextMessages, question, conversationId);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to save your message.");
+    }
   }
 
   async function stopGeneration() {
@@ -768,8 +939,13 @@ export default function DashboardClient({
 
   function handleNewChat() {
     setMessages([]);
+    activeConversationIdRef.current = null;
+    setSelectedConversationId(null);
     setExpandedSourcesByMessageId({});
     setCopiedSourceKey(null);
+    setCopiedUserMessageId(null);
+    setEditingUserMessageId(null);
+    setEditingUserMessageDraft("");
     isUserScrolledRef.current = false;
     resetStreamingState();
     setInput("");
@@ -841,7 +1017,13 @@ export default function DashboardClient({
     setEditingUserMessageId(null);
     setEditingUserMessageDraft("");
     setCopiedUserMessageId(null);
-    await streamAssistantResponse(nextMessages, nextContent);
+    const conversationId = activeConversationIdRef.current;
+    if (!conversationId) {
+      setErrorMessage("Start a new chat by sending a message.");
+      return;
+    }
+
+    await streamAssistantResponse(nextMessages, nextContent, conversationId);
   }
 
   function handleFilePickerSelection(event: ChangeEvent<HTMLInputElement>) {
@@ -919,15 +1101,27 @@ export default function DashboardClient({
                 Past chats
               </p>
               <div className="space-y-2">
-                {chatSessions.map((session) => (
-                  <button
-                    key={session.id}
-                    type="button"
-                    className="w-full rounded-lg border border-white/12 bg-[#111111] px-3 py-2 text-left text-sm text-white/85 transition-colors hover:bg-white/10"
-                  >
-                    {session.title}
-                  </button>
-                ))}
+                {isLoadingConversations ? (
+                  <p className="text-xs text-white/50">Loading chats...</p>
+                ) : chatSessions.length === 0 ? (
+                  <p className="text-xs text-white/50">No past chats yet.</p>
+                ) : (
+                  chatSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      type="button"
+                      onClick={() => void loadConversationMessages(session.id)}
+                      className={cn(
+                        "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                        selectedConversationId === session.id
+                          ? "border-white/30 bg-white/12 text-white"
+                          : "border-white/12 bg-[#111111] text-white/85 hover:bg-white/10",
+                      )}
+                    >
+                      {session.title}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
@@ -1018,7 +1212,11 @@ export default function DashboardClient({
               onScroll={handleFeedScroll}
               className="mb-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-white/12 bg-[#0b0b0b]/70 p-4 md:p-5"
             >
-              {messages.length === 0 ? (
+              {isLoadingConversationMessages ? (
+                <div className="flex h-full min-h-[360px] items-center justify-center px-4 text-center">
+                  <p className="text-sm text-white/60">Loading conversation...</p>
+                </div>
+              ) : messages.length === 0 ? (
                 <div className="flex h-full min-h-[360px] flex-col items-center justify-center px-4 text-center">
                   <h2 className="font-editorial text-5xl leading-tight text-white">Ask anything.</h2>
                   <p className="mt-3 max-w-xl text-base text-white/60">
