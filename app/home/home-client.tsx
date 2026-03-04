@@ -467,12 +467,12 @@ export default function DashboardClient({
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
   }, [generatedDeadlines, manualDeadlines]);
-  const subscriptionPlanName =
+  const subscriptionBannerMessage =
     subscriptionTier === "professional"
-      ? "Professional"
+      ? "You're now on Nuvare Professional. Welcome."
       : subscriptionTier === "core"
-        ? "Core"
-        : "plan";
+        ? "You're now on Nuvare Core. Welcome."
+        : "Welcome to Nuvare.";
 
   function isNearFeedBottom(element: HTMLDivElement, threshold = 100) {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -565,14 +565,22 @@ export default function DashboardClient({
   useEffect(() => {
     let isCancelled = false;
 
-    async function loadSubscriptionTier() {
+    async function loadSubscriptionTier(shouldShowBanner: boolean) {
       const { data, error } = await supabase
         .from("user_profiles")
         .select("subscription_tier")
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (isCancelled || error) return;
+      if (isCancelled) return;
+
+      if (error) {
+        setSubscriptionTier("none");
+        if (shouldShowBanner) {
+          setShowSubscriptionBanner(true);
+        }
+        return;
+      }
 
       const rawTier = data?.subscription_tier;
       if (rawTier === "core" || rawTier === "professional") {
@@ -580,18 +588,22 @@ export default function DashboardClient({
       } else {
         setSubscriptionTier("none");
       }
+
+      if (shouldShowBanner) {
+        setShowSubscriptionBanner(true);
+      }
     }
 
     const currentUrl = new URL(window.location.href);
-    if (currentUrl.searchParams.get("subscribed") === "true") {
-      setShowSubscriptionBanner(true);
+    const shouldShowBanner = currentUrl.searchParams.get("subscribed") === "true";
+    if (shouldShowBanner) {
       currentUrl.searchParams.delete("subscribed");
       const query = currentUrl.searchParams.toString();
       const nextUrl = `${currentUrl.pathname}${query ? `?${query}` : ""}${currentUrl.hash}`;
       window.history.replaceState({}, "", nextUrl);
     }
 
-    void loadSubscriptionTier();
+    void loadSubscriptionTier(shouldShowBanner);
 
     return () => {
       isCancelled = true;
@@ -1473,7 +1485,7 @@ export default function DashboardClient({
                 onClick={() => setShowSubscriptionBanner(false)}
                 className="mb-3 w-full rounded-lg border border-white/15 bg-[#111111] px-4 py-2 text-left text-sm text-white/80 transition-colors hover:bg-[#171717]"
               >
-                You&apos;re now on Nuvare {subscriptionPlanName}. Welcome.
+                {subscriptionBannerMessage}
               </button>
             ) : null}
 
