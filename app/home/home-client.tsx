@@ -407,6 +407,7 @@ export default function DashboardClient({
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
+  const [isDeepResearchHovered, setIsDeepResearchHovered] = useState(false);
   const [input, setInput] = useState("");
   const [thinkingPhrases, setThinkingPhrases] = useState(DEFAULT_THINKING_PHRASES);
   const [thinkingPhraseIndex, setThinkingPhraseIndex] = useState(0);
@@ -1201,6 +1202,8 @@ export default function DashboardClient({
                     <button
                       type="button"
                       onClick={() => setIsDeepResearch((prev) => !prev)}
+                      onMouseEnter={() => setIsDeepResearchHovered(true)}
+                      onMouseLeave={() => setIsDeepResearchHovered(false)}
                       disabled={isLoading}
                       className={cn(
                         "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs transition-colors",
@@ -1213,8 +1216,14 @@ export default function DashboardClient({
                       aria-label="Toggle deep research mode"
                       title="Deep research"
                     >
-                      <span aria-hidden>🔭</span>
-                      <span>Deep research</span>
+                      {isDeepResearch && isDeepResearchHovered ? (
+                        <span>× Deep research</span>
+                      ) : (
+                        <>
+                          <span aria-hidden>🔭</span>
+                          <span>Deep research</span>
+                        </>
+                      )}
                     </button>
                     {isLoading ? (
                       <Button
