@@ -420,6 +420,7 @@ export default function DashboardClient({
     Record<string, boolean>
   >({});
   const [copiedSourceKey, setCopiedSourceKey] = useState<string | null>(null);
+  const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null);
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
@@ -784,6 +785,36 @@ export default function DashboardClient({
     }
   }
 
+  async function copyUserMessageText(messageId: string, content: string) {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedUserMessageId(messageId);
+      window.setTimeout(() => {
+        setCopiedUserMessageId((current) => (current === messageId ? null : current));
+      }, 2000);
+    } catch {
+      setErrorMessage("Unable to copy message text.");
+    }
+  }
+
+  function handleEditUserMessage(messageId: string, content: string) {
+    abortControllerRef.current?.abort();
+    resetStreamingState();
+    setMessages((prev) => {
+      const messageIndex = prev.findIndex((message) => message.id === messageId);
+      if (messageIndex === -1) return prev;
+      return prev.slice(0, messageIndex);
+    });
+    setInput(content);
+    setIsLoading(false);
+    setErrorMessage("");
+    window.requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      const textareaValueLength = textareaRef.current?.value.length ?? 0;
+      textareaRef.current?.setSelectionRange(textareaValueLength, textareaValueLength);
+    });
+  }
+
   function handleFilePickerSelection(event: ChangeEvent<HTMLInputElement>) {
     const selectedFile = event.target.files?.[0] ?? null;
     setSelectedUploadFile(selectedFile);
@@ -988,18 +1019,48 @@ export default function DashboardClient({
                   const isSourcesExpanded = expandedSourcesByMessageId[message.id] ?? false;
 
                   return (
-                    <article
+                    <div
                       key={message.id}
                       className={
                         message.role === "user"
-                          ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
-                          : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
+                          ? "group ml-auto flex w-full max-w-3xl items-center justify-end gap-2"
+                          : "mr-auto w-full max-w-3xl"
                       }
                     >
-                      <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
-                        {message.role === "user" ? "You" : "Nuvare AI"}
-                      </p>
-                      {message.role === "assistant" ? (
+                      {message.role === "user" ? (
+                        <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => handleEditUserMessage(message.id, message.content)}
+                            className="inline-flex items-center p-0 text-sm text-white/55 transition-opacity hover:text-white hover:opacity-100"
+                            aria-label="Edit message"
+                            title="Edit"
+                          >
+                            ✎
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void copyUserMessageText(message.id, message.content)}
+                            className="inline-flex items-center p-0 text-sm text-white/55 transition-opacity hover:text-white hover:opacity-100"
+                            aria-label="Copy message"
+                            title="Copy"
+                          >
+                            {copiedUserMessageId === message.id ? "✓" : "⧉"}
+                          </button>
+                        </div>
+                      ) : null}
+
+                      <article
+                        className={
+                          message.role === "user"
+                            ? "w-full rounded-xl border border-white/20 bg-[#161616] p-4"
+                            : "w-full rounded-xl border border-white/12 bg-[#111111] p-4"
+                        }
+                      >
+                        <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+                          {message.role === "user" ? "You" : "Nuvare AI"}
+                        </p>
+                        {message.role === "assistant" ? (
                         <>
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
@@ -1122,12 +1183,13 @@ export default function DashboardClient({
                             </div>
                           ) : null}
                         </>
-                      ) : (
-                        <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
-                          {message.content}
-                        </p>
-                      )}
-                    </article>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                            {message.content}
+                          </p>
+                        )}
+                      </article>
+                    </div>
                   );
                 })
               )}
