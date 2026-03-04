@@ -56,6 +56,7 @@ const DEFAULT_THINKING_PHRASES = [
   "Reviewing your residency setup...",
   "Preparing your guidance...",
 ];
+const DEEP_RESEARCH_LOADING_MESSAGE = "Running deep research — this may take 2–4 minutes…";
 const EMPTY_STATE_PROMPTS = [
   "What are my main tax obligations?",
   "Am I at risk of becoming tax resident somewhere?",
@@ -404,6 +405,7 @@ export default function DashboardClient({
   const stopGenerationRequestedRef = useRef(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeepResearch, setIsDeepResearch] = useState(false);
   const [input, setInput] = useState("");
   const [thinkingPhrases, setThinkingPhrases] = useState(DEFAULT_THINKING_PHRASES);
   const [thinkingPhraseIndex, setThinkingPhraseIndex] = useState(0);
@@ -607,7 +609,9 @@ export default function DashboardClient({
     startAssistantTypewriter();
     setInput("");
     setErrorMessage("");
-    setThinkingPhrases(getThinkingPhrases(question));
+    setThinkingPhrases(
+      isDeepResearch ? [DEEP_RESEARCH_LOADING_MESSAGE] : getThinkingPhrases(question),
+    );
     setThinkingPhraseIndex(0);
     setIsThinkingPhraseVisible(true);
     setIsLoading(true);
@@ -625,6 +629,7 @@ export default function DashboardClient({
             role: message.role,
             content: message.content,
           })),
+          deepResearch: isDeepResearch,
         }),
       });
 
@@ -1111,12 +1116,14 @@ export default function DashboardClient({
                 <p
                   className={cn(
                     "text-sm text-white/50 transition-opacity duration-300",
-                    isThinkingPhraseVisible ? "opacity-100" : "opacity-0",
+                    isDeepResearch || isThinkingPhraseVisible ? "opacity-100" : "opacity-0",
                   )}
                 >
-                  {stripTrailingDots(
-                    thinkingPhrases[thinkingPhraseIndex] ?? DEFAULT_THINKING_PHRASES[0],
-                  )}
+                  {isDeepResearch
+                    ? stripTrailingDots(DEEP_RESEARCH_LOADING_MESSAGE)
+                    : stripTrailingDots(
+                        thinkingPhrases[thinkingPhraseIndex] ?? DEFAULT_THINKING_PHRASES[0],
+                      )}
                   <span className="ml-0.5 text-white/35">
                     <span>·</span>
                     <span className="inline-block w-0 overflow-hidden align-bottom thinking-dots-loop">
@@ -1136,6 +1143,24 @@ export default function DashboardClient({
                   aria-label="Attach file"
                 >
                   +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDeepResearch((prev) => !prev)}
+                  disabled={isLoading}
+                  className={cn(
+                    "mt-1 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                    isDeepResearch
+                      ? "border-white/35 bg-white/12 text-white"
+                      : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
+                    isLoading ? "cursor-not-allowed opacity-60" : "",
+                  )}
+                  aria-pressed={isDeepResearch}
+                  aria-label="Toggle deep research mode"
+                  title="Deep research"
+                >
+                  <span aria-hidden>🔭</span>
+                  <span>Deep research</span>
                 </button>
                 <div className="min-w-0 flex-1">
                   {selectedUploadFile ? (

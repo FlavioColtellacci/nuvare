@@ -10,6 +10,7 @@ type ChatMessage = {
 
 type AskPayload = {
   messages?: ChatMessage[];
+  deepResearch?: boolean;
 };
 
 type OnboardingAnswers = Record<string, unknown>;
@@ -71,6 +72,7 @@ async function fetchPerplexityRegulatoryContext(
   question: string,
   countries: string[],
   apiKey: string,
+  deepResearch: boolean,
 ) {
   const year = new Date().getFullYear();
   const countryScope = countries.length > 0 ? countries.join(", ") : "relevant jurisdictions";
@@ -83,7 +85,7 @@ async function fetchPerplexityRegulatoryContext(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "sonar",
+      model: deepResearch ? "sonar-deep-research" : "sonar",
       messages: [
         {
           role: "system",
@@ -155,6 +157,7 @@ export async function POST(request: Request) {
 
     const payload = (await request.json()) as AskPayload;
     const incomingMessages = Array.isArray(payload.messages) ? payload.messages : [];
+    const deepResearch = payload.deepResearch === true;
     const messages = normalizeMessages(incomingMessages);
 
     if (messages.length === 0) {
@@ -187,6 +190,7 @@ export async function POST(request: Request) {
       latestQuestion,
       userCountries,
       perplexityApiKey,
+      deepResearch,
     );
 
     const anthropic = new Anthropic({ apiKey });
