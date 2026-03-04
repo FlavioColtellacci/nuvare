@@ -89,9 +89,13 @@ export async function POST(request: Request) {
     const readableStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          for await (const text of stream.textStream) {
-            if (!text) continue;
-            controller.enqueue(encoder.encode(text));
+          for await (const chunk of stream) {
+            if (
+              chunk.type === "content_block_delta" &&
+              chunk.delta.type === "text_delta"
+            ) {
+              controller.enqueue(encoder.encode(chunk.delta.text));
+            }
           }
           controller.close();
         } catch (streamError) {
