@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -56,6 +57,8 @@ type ConversationSummary = {
   title: string;
   updatedAt: string;
 };
+
+type SubscriptionTier = "none" | "core" | "professional";
 
 const DEFAULT_THINKING_PHRASES = [
   "Analysing your profile...",
@@ -417,6 +420,9 @@ export default function DashboardClient({
   const [isLoadingConversationMessages, setIsLoadingConversationMessages] = useState(false);
   const [isDeepResearch, setIsDeepResearch] = useState(false);
   const [isDeepResearchHovered, setIsDeepResearchHovered] = useState(false);
+  const [showDeepResearchUpgradeMessage, setShowDeepResearchUpgradeMessage] = useState(false);
+  const [showSubscriptionBanner, setShowSubscriptionBanner] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<SubscriptionTier>("none");
   const [input, setInput] = useState("");
   const [thinkingPhrases, setThinkingPhrases] = useState(DEFAULT_THINKING_PHRASES);
   const [thinkingPhraseIndex, setThinkingPhraseIndex] = useState(0);
@@ -461,6 +467,12 @@ export default function DashboardClient({
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
   }, [generatedDeadlines, manualDeadlines]);
+  const subscriptionPlanName =
+    subscriptionTier === "professional"
+      ? "Professional"
+      : subscriptionTier === "core"
+        ? "Core"
+        : "plan";
 
   function isNearFeedBottom(element: HTMLDivElement, threshold = 100) {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -549,6 +561,62 @@ export default function DashboardClient({
       scrollFeedToBottom();
     }
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadSubscriptionTier() {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("subscription_tier")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (isCancelled || error) return;
+
+      const rawTier = data?.subscription_tier;
+      if (rawTier === "core" || rawTier === "professional") {
+        setSubscriptionTier(rawTier);
+      } else {
+        setSubscriptionTier("none");
+      }
+    }
+
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get("subscribed") === "true") {
+      setShowSubscriptionBanner(true);
+      currentUrl.searchParams.delete("subscribed");
+      const query = currentUrl.searchParams.toString();
+      const nextUrl = `${currentUrl.pathname}${query ? `?${query}` : ""}${currentUrl.hash}`;
+      window.history.replaceState({}, "", nextUrl);
+    }
+
+    void loadSubscriptionTier();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [supabase, userId]);
+
+  useEffect(() => {
+    if (!showSubscriptionBanner) return;
+    const timeoutId = window.setTimeout(() => {
+      setShowSubscriptionBanner(false);
+    }, 4000);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [showSubscriptionBanner]);
+
+  useEffect(() => {
+    if (subscriptionTier === "professional") {
+      setShowDeepResearchUpgradeMessage(false);
+      return;
+    }
+    if (isDeepResearch) {
+      setIsDeepResearch(false);
+    }
+  }, [isDeepResearch, subscriptionTier]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -960,6 +1028,18 @@ export default function DashboardClient({
     setIsLoading(false);
   }
 
+  function handleDeepResearchToggle() {
+    if (isLoading) return;
+
+    if (subscriptionTier !== "professional") {
+      setShowDeepResearchUpgradeMessage(true);
+      return;
+    }
+
+    setShowDeepResearchUpgradeMessage(false);
+    setIsDeepResearch((prev) => !prev);
+  }
+
   function handleNewChat() {
     setMessages([]);
     activeConversationIdRef.current = null;
@@ -1345,6 +1425,27 @@ export default function DashboardClient({
 
             <section className="mt-4 border-t border-white/10 pt-4">
               <p className="truncate text-xs text-white/55">{userEmail}</p>
+              {subscriptionTier === "none" ? (
+                <Link
+                  href="/pricing"
+                  className="mt-2 inline-flex text-xs text-white/45 transition-colors hover:text-white/75"
+                >
+                  Start your plan →
+                </Link>
+              ) : null}
+              {subscriptionTier === "core" ? (
+                <Link
+                  href="/pricing"
+                  className="mt-2 inline-flex text-xs text-white/45 transition-colors hover:text-white/75"
+                >
+                  Upgrade to Professional →
+                </Link>
+              ) : null}
+              {subscriptionTier === "professional" ? (
+                <span className="mt-2 inline-flex rounded-full border border-white/15 px-2 py-0.5 text-[11px] text-white/55">
+                  Professional
+                </span>
+              ) : null}
               <Button
                 variant="ghost"
                 size="lg"
@@ -1365,6 +1466,15 @@ export default function DashboardClient({
                 Your profile is incomplete. Answers may be less personalized until onboarding is
                 finished.
               </p>
+            ) : null}
+            {showSubscriptionBanner ? (
+              <button
+                type="button"
+                onClick={() => setShowSubscriptionBanner(false)}
+                className="mb-3 w-full rounded-lg border border-white/15 bg-[#111111] px-4 py-2 text-left text-sm text-white/80 transition-colors hover:bg-[#171717]"
+              >
+                You&apos;re now on Nuvare {subscriptionPlanName}. Welcome.
+              </button>
             ) : null}
 
             <div
@@ -1681,13 +1791,15 @@ export default function DashboardClient({
                   <div className="mt-2 flex items-center justify-between">
                     <button
                       type="button"
-                      onClick={() => setIsDeepResearch((prev) => !prev)}
+                      onClick={handleDeepResearchToggle}
                       onMouseEnter={() => setIsDeepResearchHovered(true)}
                       onMouseLeave={() => setIsDeepResearchHovered(false)}
                       disabled={isLoading}
                       className={cn(
                         "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs transition-colors",
-                        isDeepResearch
+                        subscriptionTier !== "professional"
+                          ? "cursor-not-allowed border-white/15 bg-white/[0.03] text-white/55 opacity-40"
+                          : isDeepResearch
                           ? "border-white/35 bg-white/12 text-white"
                           : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
                         isLoading ? "cursor-not-allowed opacity-60" : "",
@@ -1696,7 +1808,9 @@ export default function DashboardClient({
                       aria-label="Toggle deep research mode"
                       title="Deep research"
                     >
-                      {isDeepResearch && isDeepResearchHovered ? (
+                      {subscriptionTier === "professional" &&
+                      isDeepResearch &&
+                      isDeepResearchHovered ? (
                         <span>× Deep research</span>
                       ) : (
                         <>
@@ -1726,6 +1840,17 @@ export default function DashboardClient({
                   </div>
                 </div>
               </div>
+              {showDeepResearchUpgradeMessage && subscriptionTier !== "professional" ? (
+                <p className="mt-3 text-xs text-white/60">
+                  Deep Research is available on the Professional plan.{" "}
+                  <Link
+                    href="/pricing"
+                    className="text-white underline underline-offset-4 transition-colors hover:text-white/80"
+                  >
+                    Upgrade →
+                  </Link>
+                </p>
+              ) : null}
               <p className="mt-3 text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
               <p className="mt-2 text-xs text-white/45">
                 This is informational only, not legal or financial advice.
