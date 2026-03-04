@@ -318,7 +318,7 @@ export default function OnboardingPage() {
 
       setStep(CONFIRMATION_STEP);
       window.setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/home");
       }, 2400);
     } catch (error) {
       const message =
