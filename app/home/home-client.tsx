@@ -400,6 +400,7 @@ export default function DashboardClient({
   const isAssistantStreamingCompleteRef = useRef(false);
   const activeAssistantMessageIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const activeStreamReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const stopGenerationRequestedRef = useRef(false);
@@ -541,6 +542,23 @@ export default function DashboardClient({
       scrollFeedToBottom();
     }
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = Number.parseFloat(computedStyle.lineHeight) || 20;
+    const paddingY =
+      Number.parseFloat(computedStyle.paddingTop) +
+      Number.parseFloat(computedStyle.paddingBottom);
+    const maxHeight = lineHeight * 5 + paddingY;
+    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+
+    textarea.style.height = `${Math.max(nextHeight, 44)}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [input]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -1159,10 +1177,12 @@ export default function DashboardClient({
                     </div>
                   ) : null}
                   <Textarea
+                    ref={textareaRef}
+                    rows={1}
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-                    className="min-h-24 resize-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                    className="h-11 min-h-0 resize-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -1177,13 +1197,13 @@ export default function DashboardClient({
                     className="hidden"
                     onChange={handleFilePickerSelection}
                   />
-                  <div className="mt-3 flex items-center justify-between">
+                  <div className="mt-2 flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => setIsDeepResearch((prev) => !prev)}
                       disabled={isLoading}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors",
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs transition-colors",
                         isDeepResearch
                           ? "border-white/35 bg-white/12 text-white"
                           : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
@@ -1199,7 +1219,7 @@ export default function DashboardClient({
                     {isLoading ? (
                       <Button
                         onClick={() => void stopGeneration()}
-                        className="h-10 w-10 px-0"
+                        className="h-9 w-9 px-0"
                         title="Stop"
                       >
                         ■
@@ -1208,7 +1228,7 @@ export default function DashboardClient({
                       <Button
                         onClick={() => void submitQuestion()}
                         disabled={!input.trim()}
-                        className="h-10 w-10 px-0"
+                        className="h-9 w-9 px-0"
                         title="Send"
                       >
                         ↑
