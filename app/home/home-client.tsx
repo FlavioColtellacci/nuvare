@@ -400,6 +400,7 @@ export default function DashboardClient({
   const activeAssistantMessageIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const activeStreamReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const stopGenerationRequestedRef = useRef(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -473,6 +474,8 @@ export default function DashboardClient({
   }
 
   function resetStreamingState() {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     clearAssistantTypewriterInterval();
     assistantCharacterQueueRef.current = [];
     isAssistantStreamingCompleteRef.current = false;
@@ -577,6 +580,9 @@ export default function DashboardClient({
   async function submitQuestion() {
     const question = input.trim();
     if (!question || isLoading) return;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    const requestAbortController = abortControllerRef.current;
 
     const nextUserMessage: ChatMessage = {
       id: createId(),
@@ -613,6 +619,7 @@ export default function DashboardClient({
         headers: {
           "Content-Type": "application/json",
         },
+        signal: requestAbortController.signal,
         body: JSON.stringify({
           messages: nextMessages.map((message) => ({
             role: message.role,
@@ -665,7 +672,21 @@ export default function DashboardClient({
         throw new Error("AI returned an empty response.");
       }
     } catch (error) {
-      if (!stopGenerationRequestedRef.current) {
+      const isAbortError =
+        (error instanceof DOMException && error.name === "AbortError") ||
+        (error instanceof Error && error.name === "AbortError");
+
+      if (stopGenerationRequestedRef.current || isAbortError) {
+        clearAssistantTypewriterInterval();
+        assistantCharacterQueueRef.current = [];
+        isAssistantStreamingCompleteRef.current = true;
+        setMessages((prev) =>
+          prev.filter(
+            (message) =>
+              message.id !== assistantMessageId || message.content.trim().length > 0,
+          ),
+        );
+      } else {
         clearAssistantTypewriterInterval();
         assistantCharacterQueueRef.current = [];
         isAssistantStreamingCompleteRef.current = false;
@@ -677,33 +698,36 @@ export default function DashboardClient({
         );
       }
     } finally {
-      stopGenerationRequestedRef.current = false;
-      activeStreamReaderRef.current = null;
-      clearAssistantTypewriterInterval();
-      assistantCharacterQueueRef.current = [];
-      isAssistantStreamingCompleteRef.current = false;
-      activeAssistantMessageIdRef.current = null;
-      setIsLoading(false);
+      if (abortControllerRef.current === requestAbortController) {
+        abortControllerRef.current = null;
+        stopGenerationRequestedRef.current = false;
+        activeStreamReaderRef.current = null;
+        clearAssistantTypewriterInterval();
+        assistantCharacterQueueRef.current = [];
+        isAssistantStreamingCompleteRef.current = false;
+        activeAssistantMessageIdRef.current = null;
+        setIsLoading(false);
+      }
     }
   }
 
   async function stopGeneration() {
     stopGenerationRequestedRef.current = true;
-    setIsLoading(false);
-    const activeReader = activeStreamReaderRef.current;
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
     activeStreamReaderRef.current = null;
     isAssistantStreamingCompleteRef.current = true;
     assistantCharacterQueueRef.current = [];
     clearAssistantTypewriterInterval();
-    setMessages((prev) => prev.filter((message) => message.id !== activeAssistantMessageIdRef.current || message.content.trim().length > 0));
+    setMessages((prev) =>
+      prev.filter(
+        (message) =>
+          message.id !== activeAssistantMessageIdRef.current ||
+          message.content.trim().length > 0,
+      ),
+    );
     activeAssistantMessageIdRef.current = null;
-    if (activeReader) {
-      try {
-        await activeReader.cancel();
-      } catch {
-        // Ignore cancellation errors triggered by racing read/cancel states.
-      }
-    }
+    setIsLoading(false);
   }
 
   function handleNewChat() {
