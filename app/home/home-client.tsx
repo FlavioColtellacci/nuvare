@@ -1,6 +1,13 @@
 "use client";
 
-import { type ComponentPropsWithoutRef, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type ComponentPropsWithoutRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -387,9 +394,11 @@ export default function DashboardClient({
   const feedRef = useRef<HTMLDivElement | null>(null);
   const isUserScrolledRef = useRef(false);
   const thinkingFadeTimeoutRef = useRef<number | null>(null);
-  const pendingAssistantChunkRef = useRef("");
-  const pendingAssistantAnimationFrameRef = useRef<number | null>(null);
+  const assistantCharacterQueueRef = useRef<string[]>([]);
+  const assistantTypewriterIntervalRef = useRef<number | null>(null);
+  const isAssistantStreamingCompleteRef = useRef(false);
   const activeAssistantMessageIdRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -406,6 +415,7 @@ export default function DashboardClient({
   const [copiedSourceKey, setCopiedSourceKey] = useState<string | null>(null);
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     country: "",
@@ -454,27 +464,60 @@ export default function DashboardClient({
     isUserScrolledRef.current = !isNearFeedBottom(feedRef.current);
   }
 
-  function flushPendingAssistantChunk() {
-    const pendingChunk = pendingAssistantChunkRef.current;
-    const activeMessageId = activeAssistantMessageIdRef.current;
-    if (!pendingChunk || !activeMessageId) return;
-
-    pendingAssistantChunkRef.current = "";
-    setMessages((prev) =>
-      prev.map((message) =>
-        message.id === activeMessageId
-          ? { ...message, content: message.content + pendingChunk }
-          : message,
-      ),
-    );
+  function clearAssistantTypewriterInterval() {
+    if (assistantTypewriterIntervalRef.current === null) return;
+    window.clearInterval(assistantTypewriterIntervalRef.current);
+    assistantTypewriterIntervalRef.current = null;
   }
 
-  function schedulePendingAssistantChunkFlush() {
-    if (pendingAssistantAnimationFrameRef.current !== null) return;
-    pendingAssistantAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      pendingAssistantAnimationFrameRef.current = null;
-      flushPendingAssistantChunk();
-    });
+  function maybeStopAssistantTypewriter() {
+    if (
+      isAssistantStreamingCompleteRef.current &&
+      assistantCharacterQueueRef.current.length === 0
+    ) {
+      clearAssistantTypewriterInterval();
+    }
+  }
+
+  function startAssistantTypewriter() {
+    if (assistantTypewriterIntervalRef.current !== null) return;
+    assistantTypewriterIntervalRef.current = window.setInterval(() => {
+      const nextCharacter = assistantCharacterQueueRef.current.shift();
+      const activeMessageId = activeAssistantMessageIdRef.current;
+      if (!nextCharacter || !activeMessageId) {
+        maybeStopAssistantTypewriter();
+        return;
+      }
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === activeMessageId
+            ? { ...message, content: message.content + nextCharacter }
+            : message,
+        ),
+      );
+      maybeStopAssistantTypewriter();
+    }, 16);
+  }
+
+  async function waitForAssistantTypewriterDrain() {
+    if (
+      !isAssistantStreamingCompleteRef.current ||
+      assistantCharacterQueueRef.current.length > 0
+    ) {
+      await new Promise<void>((resolve) => {
+        const poll = window.setInterval(() => {
+          if (
+            isAssistantStreamingCompleteRef.current &&
+            assistantCharacterQueueRef.current.length === 0
+          ) {
+            window.clearInterval(poll);
+            clearAssistantTypewriterInterval();
+            resolve();
+          }
+        }, 20);
+      });
+    }
   }
 
   useEffect(() => {
@@ -542,11 +585,10 @@ export default function DashboardClient({
       },
     ]);
     activeAssistantMessageIdRef.current = assistantMessageId;
-    pendingAssistantChunkRef.current = "";
-    if (pendingAssistantAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
-      pendingAssistantAnimationFrameRef.current = null;
-    }
+    assistantCharacterQueueRef.current = [];
+    isAssistantStreamingCompleteRef.current = false;
+    clearAssistantTypewriterInterval();
+    startAssistantTypewriter();
     setInput("");
     setErrorMessage("");
     setThinkingPhrases(getThinkingPhrases(question));
@@ -592,31 +634,27 @@ export default function DashboardClient({
         if (!chunk) continue;
 
         hasReceivedText = true;
-        pendingAssistantChunkRef.current += chunk;
-        schedulePendingAssistantChunkFlush();
+        assistantCharacterQueueRef.current.push(...Array.from(chunk));
+        startAssistantTypewriter();
       }
 
       const trailingChunk = decoder.decode();
       if (trailingChunk) {
         hasReceivedText = true;
-        pendingAssistantChunkRef.current += trailingChunk;
+        assistantCharacterQueueRef.current.push(...Array.from(trailingChunk));
+        startAssistantTypewriter();
       }
 
-      if (pendingAssistantAnimationFrameRef.current !== null) {
-        window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
-        pendingAssistantAnimationFrameRef.current = null;
-      }
-      flushPendingAssistantChunk();
+      isAssistantStreamingCompleteRef.current = true;
+      await waitForAssistantTypewriterDrain();
 
       if (!hasReceivedText) {
         throw new Error("AI returned an empty response.");
       }
     } catch (error) {
-      if (pendingAssistantAnimationFrameRef.current !== null) {
-        window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
-        pendingAssistantAnimationFrameRef.current = null;
-      }
-      pendingAssistantChunkRef.current = "";
+      clearAssistantTypewriterInterval();
+      assistantCharacterQueueRef.current = [];
+      isAssistantStreamingCompleteRef.current = false;
       setMessages((prev) =>
         prev.filter((message) => message.id !== assistantMessageId),
       );
@@ -635,12 +673,11 @@ export default function DashboardClient({
     setCopiedSourceKey(null);
     isUserScrolledRef.current = false;
     activeAssistantMessageIdRef.current = null;
-    pendingAssistantChunkRef.current = "";
-    if (pendingAssistantAnimationFrameRef.current !== null) {
-      window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
-      pendingAssistantAnimationFrameRef.current = null;
-    }
+    assistantCharacterQueueRef.current = [];
+    isAssistantStreamingCompleteRef.current = false;
+    clearAssistantTypewriterInterval();
     setInput("");
+    setSelectedUploadFile(null);
     setErrorMessage("");
   }
 
@@ -661,6 +698,11 @@ export default function DashboardClient({
     } catch {
       setErrorMessage("Unable to copy source text.");
     }
+  }
+
+  function handleFilePickerSelection(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0] ?? null;
+    setSelectedUploadFile(selectedFile);
   }
 
   async function saveManualDeadlines(nextManualDeadlines: ManualDeadline[]) {
@@ -936,15 +978,34 @@ export default function DashboardClient({
                             {mainContent}
                           </ReactMarkdown>
 
-                          {sourceItems.length > 0 ? (
-                            <div className="mt-3">
+                          <div className="mt-3 flex items-center gap-2">
+                            {sourceItems.length > 0 ? (
                               <button
                                 type="button"
                                 onClick={() => toggleSourcesPanel(message.id)}
-                                className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white"
+                                className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/75 transition-colors hover:bg-white/[0.08] hover:text-white"
                               >
                                 📎 Sources
                               </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void copySourceText(
+                                  mainContent,
+                                  `assistant-message-${message.id}`,
+                                )
+                              }
+                              className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
+                              aria-label="Copy assistant message"
+                            >
+                              {copiedSourceKey === `assistant-message-${message.id}`
+                                ? "✓ Copied"
+                                : "⧉ Copy"}
+                            </button>
+                          </div>
+                          {sourceItems.length > 0 ? (
+                            <div className="mt-2">
                               {isSourcesExpanded ? (
                                 <div className="mt-2 rounded-lg border border-white/12 bg-[#0a0a0a] p-3 text-xs text-white/65">
                                   <ul className="space-y-2">
@@ -981,11 +1042,6 @@ export default function DashboardClient({
                           {message.content}
                         </p>
                       )}
-                      {message.role === "assistant" ? (
-                        <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
-                          This is informational only, not legal or financial advice.
-                        </p>
-                      ) : null}
                     </article>
                   );
                 })
@@ -1011,18 +1067,50 @@ export default function DashboardClient({
             </div>
 
             <section className="rounded-xl border border-white/12 bg-[#101010] p-4">
-              <Textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-                className="min-h-24 resize-none border-white/15 bg-black/40"
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void submitQuestion();
-                  }
-                }}
-              />
+              <div className="flex items-start gap-3">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#151515] text-lg text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Attach file"
+                >
+                  +
+                </button>
+                <div className="min-w-0 flex-1">
+                  {selectedUploadFile ? (
+                    <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-xs text-white/80">
+                      <span className="truncate">{selectedUploadFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUploadFile(null)}
+                        className="rounded px-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                        aria-label="Remove attached file"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : null}
+                  <Textarea
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
+                    className="min-h-24 resize-none border-white/15 bg-black/40"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        void submitQuestion();
+                      }
+                    }}
+                  />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={handleFilePickerSelection}
+                  />
+                </div>
+              </div>
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
                 <Button
@@ -1033,6 +1121,9 @@ export default function DashboardClient({
                   {isLoading ? "Thinking..." : "Ask"}
                 </Button>
               </div>
+              <p className="mt-2 text-xs text-white/45">
+                This is informational only, not legal or financial advice.
+              </p>
               {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
             </section>
           </section>
