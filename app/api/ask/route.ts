@@ -130,6 +130,7 @@ function buildSystemPrompt(
     "Never claim to be a lawyer or financial advisor. Be practical and structured.",
     "CURRENT REGULATORY CONTEXT:",
     currentRegulatoryContext,
+    "When you use information from the CURRENT REGULATORY CONTEXT above, always cite the source inline in your response using a numbered format like [1], [2] etc. At the end of your response, include a 'Sources' section listing the references. If no clear sources are provided in the context, note that the information is sourced from current regulatory research.",
     "Onboarding profile context (JSON):",
     JSON.stringify(onboardingAnswers, null, 2),
   ].join("\n\n");
