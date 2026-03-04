@@ -961,7 +961,9 @@ export default function DashboardClient({
                                             onClick={() => void copySourceText(source, sourceKey)}
                                             className="shrink-0 rounded border border-white/15 bg-transparent px-1.5 py-0.5 text-[11px] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                                             aria-label={`Copy source ${index + 1}`}
-                                            title="Copy source"
+                                            title={
+                                              copiedSourceKey === sourceKey ? "Copied ✓" : "Copy"
+                                            }
                                           >
                                             {copiedSourceKey === sourceKey ? "✓" : "⧉"}
                                           </button>
