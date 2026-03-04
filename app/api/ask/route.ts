@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic({ apiKey });
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
-      max_tokens: 900,
+      max_tokens: 4096,
       system: buildSystemPrompt(onboardingAnswers, currentRegulatoryContext),
       messages,
     });

@@ -1,7 +1,6 @@
 "use client";
 
 import { type ComponentPropsWithoutRef, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -56,6 +55,7 @@ const EMPTY_STATE_PROMPTS = [
   "When do my visas or permits expire?",
   "Do I have any foreign asset reporting obligations?",
 ];
+const LOGGED_SOURCE_SPLITS = new Set<string>();
 
 const COUNTRY_NAMES = [
   "united arab emirates",
@@ -230,9 +230,15 @@ function stripTrailingDots(text: string) {
 function splitAssistantContent(content: string) {
   const normalized = content.replace(/\r\n/g, "\n");
   const lines = normalized.split("\n");
+  const sourcesHeadingOnlyPattern =
+    /^(?:#{1,6}\s*)?(?:\*\*\s*)?sources(?:\s*\*\*)?\s*:?\s*$/i;
+  const sourcesHeadingWithInlinePattern =
+    /^(?:#{1,6}\s*)?(?:\*\*\s*)?sources(?:\s*\*\*)?\s*:\s*(.+)$/i;
   const sourcesLineIndex = lines.findIndex((line) => {
     const trimmed = line.trim();
-    return /^#{1,6}\s*sources\s*$/i.test(trimmed) || /^sources\s*:?\s*$/i.test(trimmed);
+    return (
+      sourcesHeadingOnlyPattern.test(trimmed) || sourcesHeadingWithInlinePattern.test(trimmed)
+    );
   });
 
   if (sourcesLineIndex === -1) {
@@ -243,13 +249,23 @@ function splitAssistantContent(content: string) {
   }
 
   const sourcesHeading = lines[sourcesLineIndex]?.trim() ?? "";
-  const inlineSourceMatch =
-    /^sources\s*:\s*(.+)$/i.exec(sourcesHeading) ?? /^#{1,6}\s*sources\s*:\s*(.+)$/i.exec(sourcesHeading);
+  const inlineSourceMatch = sourcesHeadingWithInlinePattern.exec(sourcesHeading);
 
   const mainContent = lines.slice(0, sourcesLineIndex).join("\n").trimEnd();
   const listAfterHeading = lines.slice(sourcesLineIndex + 1).join("\n").trim();
   const inlineSource = inlineSourceMatch?.[1]?.trim() ?? "";
   const sourcesContent = [inlineSource, listAfterHeading].filter(Boolean).join("\n").trim();
+  if (sourcesContent) {
+    const debugKey = `${mainContent.length}:${sourcesContent.length}`;
+    if (!LOGGED_SOURCE_SPLITS.has(debugKey)) {
+      // Temporary debug log to verify split behavior while integrating Sources panel UX.
+      console.log("[dashboard] sources split", {
+        mainPreview: mainContent.slice(0, 120),
+        sourcesPreview: sourcesContent.slice(0, 120),
+      });
+      LOGGED_SOURCE_SPLITS.add(debugKey);
+    }
+  }
 
   return {
     mainContent,
@@ -369,7 +385,11 @@ export default function DashboardClient({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const feedRef = useRef<HTMLDivElement | null>(null);
+  const isUserScrolledRef = useRef(false);
   const thinkingFadeTimeoutRef = useRef<number | null>(null);
+  const pendingAssistantChunkRef = useRef("");
+  const pendingAssistantAnimationFrameRef = useRef<number | null>(null);
+  const activeAssistantMessageIdRef = useRef<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -419,9 +439,49 @@ export default function DashboardClient({
     [],
   );
 
-  useEffect(() => {
+  function isNearFeedBottom(element: HTMLDivElement, threshold = 100) {
+    const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
+    return distanceFromBottom <= threshold;
+  }
+
+  function scrollFeedToBottom() {
     if (!feedRef.current) return;
     feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  }
+
+  function handleFeedScroll() {
+    if (!feedRef.current) return;
+    isUserScrolledRef.current = !isNearFeedBottom(feedRef.current);
+  }
+
+  function flushPendingAssistantChunk() {
+    const pendingChunk = pendingAssistantChunkRef.current;
+    const activeMessageId = activeAssistantMessageIdRef.current;
+    if (!pendingChunk || !activeMessageId) return;
+
+    pendingAssistantChunkRef.current = "";
+    setMessages((prev) =>
+      prev.map((message) =>
+        message.id === activeMessageId
+          ? { ...message, content: message.content + pendingChunk }
+          : message,
+      ),
+    );
+  }
+
+  function schedulePendingAssistantChunkFlush() {
+    if (pendingAssistantAnimationFrameRef.current !== null) return;
+    pendingAssistantAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      pendingAssistantAnimationFrameRef.current = null;
+      flushPendingAssistantChunk();
+    });
+  }
+
+  useEffect(() => {
+    if (!feedRef.current) return;
+    if (!isUserScrolledRef.current) {
+      scrollFeedToBottom();
+    }
   }, [messages, isLoading]);
 
   useEffect(() => {
@@ -481,6 +541,12 @@ export default function DashboardClient({
         content: "",
       },
     ]);
+    activeAssistantMessageIdRef.current = assistantMessageId;
+    pendingAssistantChunkRef.current = "";
+    if (pendingAssistantAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
+      pendingAssistantAnimationFrameRef.current = null;
+    }
     setInput("");
     setErrorMessage("");
     setThinkingPhrases(getThinkingPhrases(question));
@@ -526,35 +592,31 @@ export default function DashboardClient({
         if (!chunk) continue;
 
         hasReceivedText = true;
-        flushSync(() => {
-          setMessages((prev) =>
-            prev.map((message) =>
-              message.id === assistantMessageId
-                ? { ...message, content: message.content + chunk }
-                : message,
-            ),
-          );
-        });
+        pendingAssistantChunkRef.current += chunk;
+        schedulePendingAssistantChunkFlush();
       }
 
       const trailingChunk = decoder.decode();
       if (trailingChunk) {
         hasReceivedText = true;
-        flushSync(() => {
-          setMessages((prev) =>
-            prev.map((message) =>
-              message.id === assistantMessageId
-                ? { ...message, content: message.content + trailingChunk }
-                : message,
-            ),
-          );
-        });
+        pendingAssistantChunkRef.current += trailingChunk;
       }
+
+      if (pendingAssistantAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
+        pendingAssistantAnimationFrameRef.current = null;
+      }
+      flushPendingAssistantChunk();
 
       if (!hasReceivedText) {
         throw new Error("AI returned an empty response.");
       }
     } catch (error) {
+      if (pendingAssistantAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
+        pendingAssistantAnimationFrameRef.current = null;
+      }
+      pendingAssistantChunkRef.current = "";
       setMessages((prev) =>
         prev.filter((message) => message.id !== assistantMessageId),
       );
@@ -562,6 +624,7 @@ export default function DashboardClient({
         error instanceof Error ? error.message : "Unable to generate response.",
       );
     } finally {
+      activeAssistantMessageIdRef.current = null;
       setIsLoading(false);
     }
   }
@@ -570,6 +633,13 @@ export default function DashboardClient({
     setMessages([]);
     setExpandedSourcesByMessageId({});
     setCopiedSourceKey(null);
+    isUserScrolledRef.current = false;
+    activeAssistantMessageIdRef.current = null;
+    pendingAssistantChunkRef.current = "";
+    if (pendingAssistantAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(pendingAssistantAnimationFrameRef.current);
+      pendingAssistantAnimationFrameRef.current = null;
+    }
     setInput("");
     setErrorMessage("");
   }
@@ -759,6 +829,7 @@ export default function DashboardClient({
 
             <div
               ref={feedRef}
+              onScroll={handleFeedScroll}
               className="mb-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-white/12 bg-[#0b0b0b]/70 p-4 md:p-5"
             >
               {messages.length === 0 ? (
