@@ -97,13 +97,13 @@ export default function PricingClient({
           >
             <span>Yearly</span>
             <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white">
-              2 months free
+              Save 17%
             </span>
           </button>
         </div>
 
         <div className="mt-12 grid w-full max-w-4xl gap-6 md:grid-cols-2">
-          <article className="rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
+          <article className="flex h-full flex-col rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
             <p className="text-xs tracking-[0.2em] text-white/60">CORE</p>
             <div className="mt-5">
               <p className="text-4xl text-white">
@@ -116,10 +116,10 @@ export default function PricingClient({
                 <p className="mt-1 text-xs text-white/55">$82/mo, billed annually</p>
               ) : null}
             </div>
-            <ul className="mt-6 space-y-2 text-sm text-white/85">
-              <li>✓ Unlimited compliance queries</li>
+            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
+              <li>✓ Unlimited queries</li>
               <li>✓ Deadline dashboard</li>
-              <li>✓ Ask Anything (Claude + Perplexity)</li>
+              <li>✓ Advanced AI reasoning with live research</li>
               <li>✓ 1 profile</li>
             </ul>
             <button
@@ -132,7 +132,7 @@ export default function PricingClient({
             </button>
           </article>
 
-          <article className="rounded-2xl border border-white/45 bg-[#101010] p-7">
+          <article className="flex h-full flex-col rounded-2xl border border-white/45 bg-[#101010] p-7">
             <p className="inline-flex rounded-full border border-white/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/80">
               Most popular
             </p>
@@ -148,9 +148,9 @@ export default function PricingClient({
                 <p className="mt-1 text-xs text-white/55">$166/mo, billed annually</p>
               ) : null}
             </div>
-            <ul className="mt-6 space-y-2 text-sm text-white/85">
+            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
               <li>✓ Everything in Core</li>
-              <li>✓ 20 Deep Research queries/month</li>
+              <li>✓ 20 Deep Research queries per month</li>
               <li>✓ Document Vault (coming soon)</li>
               <li>✓ Priority support</li>
             </ul>
@@ -168,7 +168,9 @@ export default function PricingClient({
         </div>
 
         {errorMessage ? <p className="mt-5 text-sm text-red-300">{errorMessage}</p> : null}
-        <p className="mt-8 text-center text-sm text-white/50">Questions? hello@nuvare.app</p>
+        <p className="mt-8 text-center text-sm text-white/50">
+          For enquiries, contact us at hello@nuvare.app
+        </p>
       </div>
     </main>
   );
