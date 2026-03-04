@@ -1,6 +1,7 @@
 "use client";
 
 import { type ComponentPropsWithoutRef, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -48,6 +49,12 @@ const DEFAULT_THINKING_PHRASES = [
   "Analysing your profile...",
   "Reviewing your residency setup...",
   "Preparing your guidance...",
+];
+const EMPTY_STATE_PROMPTS = [
+  "What are my main tax obligations?",
+  "Am I at risk of becoming tax resident somewhere?",
+  "When do my visas or permits expire?",
+  "Do I have any foreign asset reporting obligations?",
 ];
 
 const COUNTRY_NAMES = [
@@ -216,6 +223,10 @@ function getThinkingPhrases(message: string) {
   return phrases.length > 0 ? phrases : DEFAULT_THINKING_PHRASES;
 }
 
+function stripTrailingDots(text: string) {
+  return text.replace(/\.+$/, "");
+}
+
 function generateDeadlinesFromAnswers(answers: OnboardingAnswers): Deadline[] {
   const results: Deadline[] = [];
   const citizenships = answers.citizenships ?? [];
@@ -318,14 +329,7 @@ export default function DashboardClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: createId(),
-      role: "assistant",
-      content:
-        "Ask anything about your cross-border compliance setup and I will tailor the guidance to your profile.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
   const [form, setForm] = useState({
@@ -468,25 +472,29 @@ export default function DashboardClient({
         if (!chunk) continue;
 
         hasReceivedText = true;
-        setMessages((prev) =>
-          prev.map((message) =>
-            message.id === assistantMessageId
-              ? { ...message, content: message.content + chunk }
-              : message,
-          ),
-        );
+        flushSync(() => {
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessageId
+                ? { ...message, content: message.content + chunk }
+                : message,
+            ),
+          );
+        });
       }
 
       const trailingChunk = decoder.decode();
       if (trailingChunk) {
         hasReceivedText = true;
-        setMessages((prev) =>
-          prev.map((message) =>
-            message.id === assistantMessageId
-              ? { ...message, content: message.content + trailingChunk }
-              : message,
-          ),
-        );
+        flushSync(() => {
+          setMessages((prev) =>
+            prev.map((message) =>
+              message.id === assistantMessageId
+                ? { ...message, content: message.content + trailingChunk }
+                : message,
+            ),
+          );
+        });
       }
 
       if (!hasReceivedText) {
@@ -505,14 +513,7 @@ export default function DashboardClient({
   }
 
   function handleNewChat() {
-    setMessages([
-      {
-        id: createId(),
-        role: "assistant",
-        content:
-          "Ask anything about your cross-border compliance setup and I will tailor the guidance to your profile.",
-      },
-    ]);
+    setMessages([]);
     setInput("");
     setErrorMessage("");
   }
@@ -685,89 +686,110 @@ export default function DashboardClient({
               ref={feedRef}
               className="mb-4 flex-1 space-y-4 overflow-y-auto rounded-xl border border-white/12 bg-[#0b0b0b]/70 p-4 md:p-5"
             >
-              {messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={
-                    message.role === "user"
-                      ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
-                      : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
-                  }
-                >
-                  <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
-                    {message.role === "user" ? "You" : "Nuvare AI"}
+              {messages.length === 0 ? (
+                <div className="flex h-full min-h-[360px] flex-col items-center justify-center px-4 text-center">
+                  <h2 className="font-editorial text-5xl leading-tight text-white">Ask anything.</h2>
+                  <p className="mt-3 max-w-xl text-base text-white/60">
+                    Personalised guidance for your cross-border compliance.
                   </p>
-                  {message.role === "assistant" ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
-                          <h1 className="mb-3 text-lg font-semibold text-white">{children}</h1>
-                        ),
-                        h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
-                          <h2 className="mb-2 text-base font-semibold text-white">{children}</h2>
-                        ),
-                        h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
-                          <h3 className="mb-2 text-sm font-semibold text-white">{children}</h3>
-                        ),
-                        p: ({ children }: ComponentPropsWithoutRef<"p">) => (
-                          <p className="mb-2 text-sm leading-6 text-white/90 last:mb-0">{children}</p>
-                        ),
-                        strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
-                          <strong className="font-semibold text-white">{children}</strong>
-                        ),
-                        ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
-                          <ul className="mb-2 list-disc space-y-1 pl-5 text-sm text-white/90">
-                            {children}
-                          </ul>
-                        ),
-                        ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
-                          <ol className="mb-2 list-decimal space-y-1 pl-5 text-sm text-white/90">
-                            {children}
-                          </ol>
-                        ),
-                        li: ({ children }: ComponentPropsWithoutRef<"li">) => <li>{children}</li>,
-                        hr: () => <hr className="my-3 border-white/15" />,
-                        table: ({ children }: ComponentPropsWithoutRef<"table">) => (
-                          <div className="my-2 overflow-x-auto">
-                            <table className="w-full border-collapse text-left text-sm text-white/90">
+                  <div className="mt-7 flex w-full max-w-3xl flex-wrap items-center justify-center gap-2.5">
+                    {EMPTY_STATE_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => setInput(prompt)}
+                        className="rounded-full border border-white/20 bg-[#141414] px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <article
+                    key={message.id}
+                    className={
+                      message.role === "user"
+                        ? "ml-auto w-full max-w-3xl rounded-xl border border-white/20 bg-[#161616] p-4"
+                        : "mr-auto w-full max-w-3xl rounded-xl border border-white/12 bg-[#111111] p-4"
+                    }
+                  >
+                    <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+                      {message.role === "user" ? "You" : "Nuvare AI"}
+                    </p>
+                    {message.role === "assistant" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
+                            <h1 className="mb-3 text-lg font-semibold text-white">{children}</h1>
+                          ),
+                          h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
+                            <h2 className="mb-2 text-base font-semibold text-white">{children}</h2>
+                          ),
+                          h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
+                            <h3 className="mb-2 text-sm font-semibold text-white">{children}</h3>
+                          ),
+                          p: ({ children }: ComponentPropsWithoutRef<"p">) => (
+                            <p className="mb-2 text-sm leading-6 text-white/90 last:mb-0">{children}</p>
+                          ),
+                          strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
+                            <strong className="font-semibold text-white">{children}</strong>
+                          ),
+                          ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
+                            <ul className="mb-2 list-disc space-y-1 pl-5 text-sm text-white/90">
                               {children}
-                            </table>
-                          </div>
-                        ),
-                        thead: ({ children }: ComponentPropsWithoutRef<"thead">) => (
-                          <thead className="bg-white/5 text-white">{children}</thead>
-                        ),
-                        tbody: ({ children }: ComponentPropsWithoutRef<"tbody">) => (
-                          <tbody>{children}</tbody>
-                        ),
-                        tr: ({ children }: ComponentPropsWithoutRef<"tr">) => (
-                          <tr className="border-b border-white/10 last:border-b-0">{children}</tr>
-                        ),
-                        th: ({ children }: ComponentPropsWithoutRef<"th">) => (
-                          <th className="border border-white/10 px-2 py-1.5 font-medium">
-                            {children}
-                          </th>
-                        ),
-                        td: ({ children }: ComponentPropsWithoutRef<"td">) => (
-                          <td className="border border-white/10 px-2 py-1.5">{children}</td>
-                        ),
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                  ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
-                      {message.content}
-                    </p>
-                  )}
-                  {message.role === "assistant" ? (
-                    <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
-                      This is informational only, not legal or financial advice.
-                    </p>
-                  ) : null}
-                </article>
-              ))}
+                            </ul>
+                          ),
+                          ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
+                            <ol className="mb-2 list-decimal space-y-1 pl-5 text-sm text-white/90">
+                              {children}
+                            </ol>
+                          ),
+                          li: ({ children }: ComponentPropsWithoutRef<"li">) => <li>{children}</li>,
+                          hr: () => <hr className="my-3 border-white/15" />,
+                          table: ({ children }: ComponentPropsWithoutRef<"table">) => (
+                            <div className="my-2 overflow-x-auto">
+                              <table className="w-full border-collapse text-left text-sm text-white/90">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          thead: ({ children }: ComponentPropsWithoutRef<"thead">) => (
+                            <thead className="bg-white/5 text-white">{children}</thead>
+                          ),
+                          tbody: ({ children }: ComponentPropsWithoutRef<"tbody">) => (
+                            <tbody>{children}</tbody>
+                          ),
+                          tr: ({ children }: ComponentPropsWithoutRef<"tr">) => (
+                            <tr className="border-b border-white/10 last:border-b-0">{children}</tr>
+                          ),
+                          th: ({ children }: ComponentPropsWithoutRef<"th">) => (
+                            <th className="border border-white/10 px-2 py-1.5 font-medium">
+                              {children}
+                            </th>
+                          ),
+                          td: ({ children }: ComponentPropsWithoutRef<"td">) => (
+                            <td className="border border-white/10 px-2 py-1.5">{children}</td>
+                          ),
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                        {message.content}
+                      </p>
+                    )}
+                    {message.role === "assistant" ? (
+                      <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
+                        This is informational only, not legal or financial advice.
+                      </p>
+                    ) : null}
+                  </article>
+                ))
+              )}
               {isLoading ? (
                 <p
                   className={cn(
@@ -775,7 +797,15 @@ export default function DashboardClient({
                     isThinkingPhraseVisible ? "opacity-100" : "opacity-0",
                   )}
                 >
-                  {thinkingPhrases[thinkingPhraseIndex] ?? DEFAULT_THINKING_PHRASES[0]}
+                  {stripTrailingDots(
+                    thinkingPhrases[thinkingPhraseIndex] ?? DEFAULT_THINKING_PHRASES[0],
+                  )}
+                  <span className="ml-0.5 text-white/35">
+                    <span>·</span>
+                    <span className="inline-block w-0 overflow-hidden align-bottom thinking-dots-loop">
+                      ··
+                    </span>
+                  </span>
                 </p>
               ) : null}
             </div>
@@ -874,6 +904,30 @@ export default function DashboardClient({
           </div>
         ) : null}
       </div>
+      <style jsx>{`
+        .thinking-dots-loop {
+          animation: thinking-dots-loop 1.15s linear infinite;
+        }
+
+        @keyframes thinking-dots-loop {
+          0%,
+          24.9% {
+            width: 0ch;
+          }
+          25%,
+          49.9% {
+            width: 1ch;
+          }
+          50%,
+          74.9% {
+            width: 2ch;
+          }
+          75%,
+          100% {
+            width: 0ch;
+          }
+        }
+      `}</style>
     </main>
   );
 }
