@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       (profile?.onboarding_answers as OnboardingAnswers | null) ?? {};
     const anthropic = new Anthropic({ apiKey });
     const completion = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: "claude-sonnet-4-6",
       max_tokens: 900,
       system: buildSystemPrompt(onboardingAnswers),
       messages,
