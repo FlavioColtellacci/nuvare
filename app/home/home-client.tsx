@@ -399,6 +399,8 @@ export default function DashboardClient({
   const isAssistantStreamingCompleteRef = useRef(false);
   const activeAssistantMessageIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const activeStreamReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null);
+  const stopGenerationRequestedRef = useRef(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
@@ -468,6 +470,14 @@ export default function DashboardClient({
     if (assistantTypewriterIntervalRef.current === null) return;
     window.clearInterval(assistantTypewriterIntervalRef.current);
     assistantTypewriterIntervalRef.current = null;
+  }
+
+  function resetStreamingState() {
+    clearAssistantTypewriterInterval();
+    assistantCharacterQueueRef.current = [];
+    isAssistantStreamingCompleteRef.current = false;
+    activeAssistantMessageIdRef.current = null;
+    activeStreamReaderRef.current = null;
   }
 
   function maybeStopAssistantTypewriter() {
@@ -595,6 +605,7 @@ export default function DashboardClient({
     setThinkingPhraseIndex(0);
     setIsThinkingPhraseVisible(true);
     setIsLoading(true);
+    stopGenerationRequestedRef.current = false;
 
     try {
       const response = await fetch("/api/ask", {
@@ -622,6 +633,7 @@ export default function DashboardClient({
       }
 
       const reader = response.body.getReader();
+      activeStreamReaderRef.current = reader;
       const decoder = new TextDecoder();
       let hasReceivedText = false;
 
@@ -646,24 +658,50 @@ export default function DashboardClient({
       }
 
       isAssistantStreamingCompleteRef.current = true;
+      activeStreamReaderRef.current = null;
       await waitForAssistantTypewriterDrain();
 
       if (!hasReceivedText) {
         throw new Error("AI returned an empty response.");
       }
     } catch (error) {
+      if (!stopGenerationRequestedRef.current) {
+        clearAssistantTypewriterInterval();
+        assistantCharacterQueueRef.current = [];
+        isAssistantStreamingCompleteRef.current = false;
+        setMessages((prev) =>
+          prev.filter((message) => message.id !== assistantMessageId),
+        );
+        setErrorMessage(
+          error instanceof Error ? error.message : "Unable to generate response.",
+        );
+      }
+    } finally {
+      stopGenerationRequestedRef.current = false;
+      activeStreamReaderRef.current = null;
       clearAssistantTypewriterInterval();
       assistantCharacterQueueRef.current = [];
       isAssistantStreamingCompleteRef.current = false;
-      setMessages((prev) =>
-        prev.filter((message) => message.id !== assistantMessageId),
-      );
-      setErrorMessage(
-        error instanceof Error ? error.message : "Unable to generate response.",
-      );
-    } finally {
       activeAssistantMessageIdRef.current = null;
       setIsLoading(false);
+    }
+  }
+
+  async function stopGeneration() {
+    stopGenerationRequestedRef.current = true;
+    setIsLoading(false);
+    const activeReader = activeStreamReaderRef.current;
+    activeStreamReaderRef.current = null;
+    isAssistantStreamingCompleteRef.current = true;
+    assistantCharacterQueueRef.current = [];
+    clearAssistantTypewriterInterval();
+    activeAssistantMessageIdRef.current = null;
+    if (activeReader) {
+      try {
+        await activeReader.cancel();
+      } catch {
+        // Ignore cancellation errors triggered by racing read/cancel states.
+      }
     }
   }
 
@@ -672,10 +710,7 @@ export default function DashboardClient({
     setExpandedSourcesByMessageId({});
     setCopiedSourceKey(null);
     isUserScrolledRef.current = false;
-    activeAssistantMessageIdRef.current = null;
-    assistantCharacterQueueRef.current = [];
-    isAssistantStreamingCompleteRef.current = false;
-    clearAssistantTypewriterInterval();
+    resetStreamingState();
     setInput("");
     setSelectedUploadFile(null);
     setErrorMessage("");
@@ -694,7 +729,7 @@ export default function DashboardClient({
       setCopiedSourceKey(sourceKey);
       window.setTimeout(() => {
         setCopiedSourceKey((current) => (current === sourceKey ? null : current));
-      }, 1200);
+      }, 2000);
     } catch {
       setErrorMessage("Unable to copy source text.");
     }
@@ -996,12 +1031,13 @@ export default function DashboardClient({
                                   `assistant-message-${message.id}`,
                                 )
                               }
-                              className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-3 py-1 text-xs text-white/80 transition-colors hover:bg-white/[0.08] hover:text-white"
+                              className="inline-flex items-center p-0 text-sm text-white/55 transition-opacity hover:text-white hover:opacity-100"
                               aria-label="Copy assistant message"
+                              title="Copy"
                             >
                               {copiedSourceKey === `assistant-message-${message.id}`
-                                ? "✓ Copied"
-                                : "⧉ Copy"}
+                                ? "✓"
+                                : "⧉"}
                             </button>
                           </div>
                           {sourceItems.length > 0 ? (
@@ -1071,7 +1107,7 @@ export default function DashboardClient({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 bg-[#151515] text-lg text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  className="mt-1 inline-flex shrink-0 items-center justify-center px-1 text-2xl text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
                   aria-label="Attach file"
                 >
                   +
@@ -1113,13 +1149,20 @@ export default function DashboardClient({
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <p className="text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
-                <Button
-                  onClick={() => void submitQuestion()}
-                  disabled={isLoading || !input.trim()}
-                  className="h-10"
-                >
-                  {isLoading ? "Thinking..." : "Ask"}
-                </Button>
+                {isLoading ? (
+                  <Button onClick={() => void stopGeneration()} className="h-10 w-10 px-0" title="Stop">
+                    ■
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => void submitQuestion()}
+                    disabled={!input.trim()}
+                    className="h-10 w-10 px-0"
+                    title="Send"
+                  >
+                    ↑
+                  </Button>
+                )}
               </div>
               <p className="mt-2 text-xs text-white/45">
                 This is informational only, not legal or financial advice.
