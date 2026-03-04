@@ -427,6 +427,9 @@ export default function DashboardClient({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatSessions, setChatSessions] = useState<ConversationSummary[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const [openConversationMenuId, setOpenConversationMenuId] = useState<string | null>(null);
+  const [renamingConversationId, setRenamingConversationId] = useState<string | null>(null);
+  const [renamingConversationDraft, setRenamingConversationDraft] = useState("");
   const [expandedSourcesByMessageId, setExpandedSourcesByMessageId] = useState<
     Record<string, boolean>
   >({});
@@ -755,6 +758,26 @@ export default function DashboardClient({
     void loadConversations();
   }, [supabase, userId]);
 
+  useEffect(() => {
+    if (!openConversationMenuId) return;
+
+    function handleOutsideMenuClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      if (target.closest(`[data-conversation-menu-root="${openConversationMenuId}"]`)) {
+        return;
+      }
+
+      setOpenConversationMenuId(null);
+    }
+
+    window.addEventListener("mousedown", handleOutsideMenuClick);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideMenuClick);
+    };
+  }, [openConversationMenuId]);
+
   async function streamAssistantResponse(
     nextMessages: ChatMessage[],
     question: string,
@@ -941,6 +964,9 @@ export default function DashboardClient({
     setMessages([]);
     activeConversationIdRef.current = null;
     setSelectedConversationId(null);
+    setOpenConversationMenuId(null);
+    setRenamingConversationId(null);
+    setRenamingConversationDraft("");
     setExpandedSourcesByMessageId({});
     setCopiedSourceKey(null);
     setCopiedUserMessageId(null);
@@ -951,6 +977,68 @@ export default function DashboardClient({
     setInput("");
     setSelectedUploadFile(null);
     setErrorMessage("");
+  }
+
+  function startConversationRename(conversationId: string, currentTitle: string) {
+    setOpenConversationMenuId(null);
+    setRenamingConversationId(conversationId);
+    setRenamingConversationDraft(currentTitle);
+    setErrorMessage("");
+  }
+
+  function cancelConversationRename() {
+    setRenamingConversationId(null);
+    setRenamingConversationDraft("");
+  }
+
+  async function saveConversationRename(conversationId: string) {
+    const nextTitle = renamingConversationDraft.trim();
+    if (!nextTitle) {
+      setErrorMessage("Conversation title cannot be empty.");
+      return;
+    }
+
+    const previousSessions = chatSessions;
+    setChatSessions((prev) =>
+      prev.map((session) =>
+        session.id === conversationId ? { ...session, title: nextTitle } : session,
+      ),
+    );
+    cancelConversationRename();
+
+    const { error } = await supabase
+      .from("conversations")
+      .update({ title: nextTitle })
+      .eq("id", conversationId)
+      .eq("user_id", userId);
+
+    if (error) {
+      setChatSessions(previousSessions);
+      setErrorMessage(error.message);
+    }
+  }
+
+  async function deleteConversation(conversationId: string) {
+    const previousSessions = chatSessions;
+    const isDeletingActiveConversation = activeConversationIdRef.current === conversationId;
+    setChatSessions((prev) => prev.filter((session) => session.id !== conversationId));
+    setOpenConversationMenuId(null);
+    cancelConversationRename();
+
+    if (isDeletingActiveConversation) {
+      handleNewChat();
+    }
+
+    const { error } = await supabase
+      .from("conversations")
+      .delete()
+      .eq("id", conversationId)
+      .eq("user_id", userId);
+
+    if (error) {
+      setChatSessions(previousSessions);
+      setErrorMessage(error.message);
+    }
   }
 
   function toggleSourcesPanel(messageId: string) {
@@ -1107,19 +1195,91 @@ export default function DashboardClient({
                   <p className="text-xs text-white/50">No past chats yet.</p>
                 ) : (
                   chatSessions.map((session) => (
-                    <button
+                    <div
                       key={session.id}
-                      type="button"
-                      onClick={() => void loadConversationMessages(session.id)}
-                      className={cn(
-                        "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-                        selectedConversationId === session.id
-                          ? "border-white/30 bg-white/12 text-white"
-                          : "border-white/12 bg-[#111111] text-white/85 hover:bg-white/10",
-                      )}
+                      data-conversation-menu-root={session.id}
+                      className="group relative"
                     >
-                      {session.title}
-                    </button>
+                      {renamingConversationId === session.id ? (
+                        <Input
+                          autoFocus
+                          value={renamingConversationDraft}
+                          onChange={(event) => setRenamingConversationDraft(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              void saveConversationRename(session.id);
+                            }
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              cancelConversationRename();
+                            }
+                          }}
+                          className="h-10 w-full rounded-lg border border-white/25 bg-[#0f0f0f] px-3 pr-10 text-sm text-white shadow-none focus-visible:ring-0"
+                          aria-label="Rename conversation"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => void loadConversationMessages(session.id)}
+                          className={cn(
+                            "w-full rounded-lg border px-3 py-2 pr-10 text-left text-sm transition-colors",
+                            selectedConversationId === session.id
+                              ? "border-white/30 bg-white/12 text-white"
+                              : "border-white/12 bg-[#111111] text-white/85 hover:bg-white/10",
+                          )}
+                        >
+                          {session.title}
+                        </button>
+                      )}
+
+                      {renamingConversationId === session.id ? null : (
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setOpenConversationMenuId((current) =>
+                              current === session.id ? null : session.id,
+                            );
+                          }}
+                          className={cn(
+                            "absolute right-1.5 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md border border-white/10 bg-[#0d0d0d] text-sm text-white/65 transition-all hover:border-white/25 hover:bg-[#171717] hover:text-white",
+                            openConversationMenuId === session.id
+                              ? "opacity-100"
+                              : "opacity-0 group-hover:opacity-100",
+                          )}
+                          aria-label="Conversation options"
+                          title="More"
+                        >
+                          ...
+                        </button>
+                      )}
+
+                      {openConversationMenuId === session.id ? (
+                        <div className="absolute right-1.5 top-9 z-30 min-w-[124px] rounded-lg border border-white/15 bg-[#0a0a0a] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startConversationRename(session.id, session.title);
+                            }}
+                            className="w-full rounded-md px-2.5 py-1.5 text-left text-xs text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+                          >
+                            Rename
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void deleteConversation(session.id);
+                            }}
+                            className="w-full rounded-md px-2.5 py-1.5 text-left text-xs text-red-200 transition-colors hover:bg-red-500/20 hover:text-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   ))
                 )}
               </div>
