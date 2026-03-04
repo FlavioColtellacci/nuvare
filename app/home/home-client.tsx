@@ -421,6 +421,8 @@ export default function DashboardClient({
   >({});
   const [copiedSourceKey, setCopiedSourceKey] = useState<string | null>(null);
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null);
+  const [editingUserMessageId, setEditingUserMessageId] = useState<string | null>(null);
+  const [editingUserMessageDraft, setEditingUserMessageDraft] = useState("");
   const [manualDeadlines, setManualDeadlines] =
     useState<ManualDeadline[]>(initialManualDeadlines);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
@@ -599,20 +601,14 @@ export default function DashboardClient({
     router.push("/onboarding");
   }
 
-  async function submitQuestion() {
-    const question = input.trim();
-    if (!question || isLoading) return;
+  async function streamAssistantResponse(
+    nextMessages: ChatMessage[],
+    question: string,
+    options?: { clearInput?: boolean },
+  ) {
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
     const requestAbortController = abortControllerRef.current;
-
-    const nextUserMessage: ChatMessage = {
-      id: createId(),
-      role: "user",
-      content: question,
-    };
-
-    const nextMessages = [...messages, nextUserMessage];
     const assistantMessageId = createId();
     setMessages([
       ...nextMessages,
@@ -627,7 +623,9 @@ export default function DashboardClient({
     isAssistantStreamingCompleteRef.current = false;
     clearAssistantTypewriterInterval();
     startAssistantTypewriter();
-    setInput("");
+    if (options?.clearInput) {
+      setInput("");
+    }
     setErrorMessage("");
     setThinkingPhrases(
       isDeepResearch ? [DEEP_RESEARCH_LOADING_MESSAGE] : getThinkingPhrases(question),
@@ -736,6 +734,19 @@ export default function DashboardClient({
     }
   }
 
+  async function submitQuestion() {
+    const question = input.trim();
+    if (!question || isLoading) return;
+
+    const nextUserMessage: ChatMessage = {
+      id: createId(),
+      role: "user",
+      content: question,
+    };
+    const nextMessages = [...messages, nextUserMessage];
+    await streamAssistantResponse(nextMessages, question, { clearInput: true });
+  }
+
   async function stopGeneration() {
     stopGenerationRequestedRef.current = true;
     abortControllerRef.current?.abort();
@@ -797,22 +808,40 @@ export default function DashboardClient({
     }
   }
 
-  function handleEditUserMessage(messageId: string, content: string) {
-    abortControllerRef.current?.abort();
-    resetStreamingState();
-    setMessages((prev) => {
-      const messageIndex = prev.findIndex((message) => message.id === messageId);
-      if (messageIndex === -1) return prev;
-      return prev.slice(0, messageIndex);
-    });
-    setInput(content);
-    setIsLoading(false);
+  function handleStartInlineEdit(messageId: string, content: string) {
+    setEditingUserMessageId(messageId);
+    setEditingUserMessageDraft(content);
     setErrorMessage("");
-    window.requestAnimationFrame(() => {
-      textareaRef.current?.focus();
-      const textareaValueLength = textareaRef.current?.value.length ?? 0;
-      textareaRef.current?.setSelectionRange(textareaValueLength, textareaValueLength);
-    });
+  }
+
+  function handleCancelInlineEdit() {
+    setEditingUserMessageId(null);
+    setEditingUserMessageDraft("");
+    setErrorMessage("");
+  }
+
+  async function handleSaveInlineEdit(messageId: string) {
+    const nextContent = editingUserMessageDraft.trim();
+    if (!nextContent) {
+      setErrorMessage("Message cannot be empty.");
+      return;
+    }
+
+    const messageIndex = messages.findIndex(
+      (message) => message.id === messageId && message.role === "user",
+    );
+    if (messageIndex === -1) return;
+
+    const nextMessages = messages.slice(0, messageIndex + 1).map((message) =>
+      message.id === messageId ? { ...message, content: nextContent } : message,
+    );
+
+    resetStreamingState();
+    setIsLoading(false);
+    setEditingUserMessageId(null);
+    setEditingUserMessageDraft("");
+    setCopiedUserMessageId(null);
+    await streamAssistantResponse(nextMessages, nextContent);
   }
 
   function handleFilePickerSelection(event: ChangeEvent<HTMLInputElement>) {
@@ -1017,6 +1046,8 @@ export default function DashboardClient({
                   const sourceItems =
                     message.role === "assistant" ? extractSourceItems(sourcesContent) : [];
                   const isSourcesExpanded = expandedSourcesByMessageId[message.id] ?? false;
+                  const isInlineEditingUserMessage =
+                    message.role === "user" && editingUserMessageId === message.id;
 
                   return (
                     <div
@@ -1027,11 +1058,11 @@ export default function DashboardClient({
                           : "mr-auto w-full max-w-3xl"
                       }
                     >
-                      {message.role === "user" ? (
+                      {message.role === "user" && !isInlineEditingUserMessage ? (
                         <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                           <button
                             type="button"
-                            onClick={() => handleEditUserMessage(message.id, message.content)}
+                            onClick={() => handleStartInlineEdit(message.id, message.content)}
                             className="inline-flex items-center p-0 text-sm text-white/55 transition-opacity hover:text-white hover:opacity-100"
                             aria-label="Edit message"
                             title="Edit"
@@ -1050,18 +1081,19 @@ export default function DashboardClient({
                         </div>
                       ) : null}
 
-                      <article
-                        className={
-                          message.role === "user"
-                            ? "w-full rounded-xl border border-white/20 bg-[#161616] p-4"
-                            : "w-full rounded-xl border border-white/12 bg-[#111111] p-4"
-                        }
-                      >
-                        <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
-                          {message.role === "user" ? "You" : "Nuvare AI"}
-                        </p>
-                        {message.role === "assistant" ? (
-                        <>
+                      <div className="w-full">
+                        <article
+                          className={
+                            message.role === "user"
+                              ? "w-full rounded-xl border border-white/20 bg-[#161616] p-4"
+                              : "w-full rounded-xl border border-white/12 bg-[#111111] p-4"
+                          }
+                        >
+                          <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
+                            {message.role === "user" ? "You" : "Nuvare AI"}
+                          </p>
+                          {message.role === "assistant" ? (
+                            <>
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
@@ -1182,13 +1214,41 @@ export default function DashboardClient({
                               ) : null}
                             </div>
                           ) : null}
-                        </>
-                        ) : (
-                          <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
-                            {message.content}
-                          </p>
-                        )}
-                      </article>
+                            </>
+                          ) : isInlineEditingUserMessage ? (
+                            <Textarea
+                              rows={Math.max(3, editingUserMessageDraft.split("\n").length)}
+                              value={editingUserMessageDraft}
+                              onChange={(event) => setEditingUserMessageDraft(event.target.value)}
+                              className="min-h-[72px] resize-none border-0 bg-transparent px-0 py-0 text-sm leading-6 text-white/90 shadow-none focus-visible:ring-0"
+                              aria-label="Edit your message"
+                              autoFocus
+                            />
+                          ) : (
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                              {message.content}
+                            </p>
+                          )}
+                        </article>
+                        {isInlineEditingUserMessage ? (
+                          <div className="mt-2 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={handleCancelInlineEdit}
+                              className="inline-flex h-7 items-center rounded border border-white/20 bg-transparent px-2.5 text-xs text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleSaveInlineEdit(message.id)}
+                              className="inline-flex h-7 items-center rounded border border-white/30 bg-white/10 px-2.5 text-xs text-white transition-colors hover:bg-white/15"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 })
