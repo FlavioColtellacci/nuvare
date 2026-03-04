@@ -695,6 +695,7 @@ export default function DashboardClient({
     isAssistantStreamingCompleteRef.current = true;
     assistantCharacterQueueRef.current = [];
     clearAssistantTypewriterInterval();
+    setMessages((prev) => prev.filter((message) => message.id !== activeAssistantMessageIdRef.current || message.content.trim().length > 0));
     activeAssistantMessageIdRef.current = null;
     if (activeReader) {
       try {
