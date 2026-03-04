@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentPropsWithoutRef, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +43,36 @@ type ChatMessage = {
   role: ChatRole;
   content: string;
 };
+
+const DEFAULT_THINKING_PHRASES = [
+  "Analysing your profile...",
+  "Reviewing your residency setup...",
+  "Preparing your guidance...",
+];
+
+const COUNTRY_NAMES = [
+  "united arab emirates",
+  "united kingdom",
+  "united states",
+  "australia",
+  "canada",
+  "singapore",
+  "germany",
+  "france",
+  "spain",
+  "portugal",
+  "italy",
+  "switzerland",
+  "ireland",
+  "netherlands",
+  "india",
+  "china",
+  "japan",
+  "brazil",
+  "mexico",
+  "south africa",
+  "new zealand",
+];
 
 function createId() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -117,6 +149,71 @@ function normalizeCountry(value: string) {
   if (value === "UK") return "United Kingdom";
   if (value === "US") return "United States";
   return value;
+}
+
+function hasKeyword(text: string, keyword: string) {
+  return new RegExp(`\\b${keyword}\\b`, "i").test(text);
+}
+
+function hasCountryName(text: string) {
+  const lower = text.toLowerCase();
+  return COUNTRY_NAMES.some((country) =>
+    new RegExp(`\\b${country.replaceAll(" ", "\\s+")}\\b`, "i").test(lower),
+  );
+}
+
+function getThinkingPhrases(message: string) {
+  const phrases: string[] = [];
+  const lower = message.toLowerCase();
+
+  if (hasKeyword(lower, "tax") || hasKeyword(lower, "filing")) {
+    phrases.push(
+      "Cross-referencing your tax profile...",
+      "Checking filing obligations...",
+      "Calculating your tax exposure...",
+    );
+  }
+
+  if (
+    hasKeyword(lower, "visa") ||
+    hasKeyword(lower, "permit") ||
+    hasKeyword(lower, "residency")
+  ) {
+    phrases.push(
+      "Checking your visa status...",
+      "Reviewing residency requirements...",
+      "Analysing permit obligations...",
+    );
+  }
+
+  if (hasKeyword(lower, "deadline")) {
+    phrases.push(
+      "Scanning your compliance deadlines...",
+      "Checking upcoming obligations...",
+      "Reviewing your deadline calendar...",
+    );
+  }
+
+  if (
+    hasKeyword(lower, "pension") ||
+    hasKeyword(lower, "super") ||
+    hasKeyword(lower, "retirement")
+  ) {
+    phrases.push(
+      "Reviewing your pension obligations...",
+      "Checking contribution requirements...",
+    );
+  }
+
+  if (hasCountryName(lower)) {
+    phrases.push(
+      "Pulling regulatory data...",
+      "Checking cross-border rules...",
+      "Reviewing country obligations...",
+    );
+  }
+
+  return phrases.length > 0 ? phrases : DEFAULT_THINKING_PHRASES;
 }
 
 function generateDeadlinesFromAnswers(answers: OnboardingAnswers): Deadline[] {
@@ -211,9 +308,13 @@ export default function DashboardClient({
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const feedRef = useRef<HTMLDivElement | null>(null);
+  const thinkingFadeTimeoutRef = useRef<number | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState("");
+  const [thinkingPhrases, setThinkingPhrases] = useState(DEFAULT_THINKING_PHRASES);
+  const [thinkingPhraseIndex, setThinkingPhraseIndex] = useState(0);
+  const [isThinkingPhraseVisible, setIsThinkingPhraseVisible] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -265,6 +366,37 @@ export default function DashboardClient({
     feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      if (thinkingFadeTimeoutRef.current !== null) {
+        window.clearTimeout(thinkingFadeTimeoutRef.current);
+      }
+      setThinkingPhraseIndex(0);
+      setIsThinkingPhraseVisible(true);
+      return;
+    }
+
+    if (thinkingPhrases.length <= 1) return;
+
+    const intervalId = window.setInterval(() => {
+      setIsThinkingPhraseVisible(false);
+      if (thinkingFadeTimeoutRef.current !== null) {
+        window.clearTimeout(thinkingFadeTimeoutRef.current);
+      }
+      thinkingFadeTimeoutRef.current = window.setTimeout(() => {
+        setThinkingPhraseIndex((prev) => (prev + 1) % thinkingPhrases.length);
+        setIsThinkingPhraseVisible(true);
+      }, 220);
+    }, 2000);
+
+    return () => {
+      window.clearInterval(intervalId);
+      if (thinkingFadeTimeoutRef.current !== null) {
+        window.clearTimeout(thinkingFadeTimeoutRef.current);
+      }
+    };
+  }, [isLoading, thinkingPhrases]);
+
   async function handleSignOut() {
     setIsSigningOut(true);
     await supabase.auth.signOut();
@@ -282,9 +414,20 @@ export default function DashboardClient({
     };
 
     const nextMessages = [...messages, nextUserMessage];
-    setMessages(nextMessages);
+    const assistantMessageId = createId();
+    setMessages([
+      ...nextMessages,
+      {
+        id: assistantMessageId,
+        role: "assistant",
+        content: "",
+      },
+    ]);
     setInput("");
     setErrorMessage("");
+    setThinkingPhrases(getThinkingPhrases(question));
+    setThinkingPhraseIndex(0);
+    setIsThinkingPhraseVisible(true);
     setIsLoading(true);
 
     try {
@@ -308,22 +451,51 @@ export default function DashboardClient({
         throw new Error(payload?.error ?? "Unable to generate response.");
       }
 
-      const payload = (await response.json()) as { answer?: string };
-      const answer = payload.answer?.trim();
-
-      if (!answer) {
-        throw new Error("AI returned an empty response.");
+      if (!response.body) {
+        throw new Error("Streaming response is unavailable.");
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: createId(),
-          role: "assistant",
-          content: answer,
-        },
-      ]);
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let hasReceivedText = false;
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+
+        const chunk = decoder.decode(value, { stream: true });
+        if (!chunk) continue;
+
+        hasReceivedText = true;
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessageId
+              ? { ...message, content: message.content + chunk }
+              : message,
+          ),
+        );
+      }
+
+      const trailingChunk = decoder.decode();
+      if (trailingChunk) {
+        hasReceivedText = true;
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessageId
+              ? { ...message, content: message.content + trailingChunk }
+              : message,
+          ),
+        );
+      }
+
+      if (!hasReceivedText) {
+        throw new Error("AI returned an empty response.");
+      }
     } catch (error) {
+      setMessages((prev) =>
+        prev.filter((message) => message.id !== assistantMessageId),
+      );
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to generate response.",
       );
@@ -525,9 +697,70 @@ export default function DashboardClient({
                   <p className="mb-2 text-xs uppercase tracking-[0.16em] text-white/45">
                     {message.role === "user" ? "You" : "Nuvare AI"}
                   </p>
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
-                    {message.content}
-                  </p>
+                  {message.role === "assistant" ? (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
+                          <h1 className="mb-3 text-lg font-semibold text-white">{children}</h1>
+                        ),
+                        h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
+                          <h2 className="mb-2 text-base font-semibold text-white">{children}</h2>
+                        ),
+                        h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
+                          <h3 className="mb-2 text-sm font-semibold text-white">{children}</h3>
+                        ),
+                        p: ({ children }: ComponentPropsWithoutRef<"p">) => (
+                          <p className="mb-2 text-sm leading-6 text-white/90 last:mb-0">{children}</p>
+                        ),
+                        strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
+                          <strong className="font-semibold text-white">{children}</strong>
+                        ),
+                        ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
+                          <ul className="mb-2 list-disc space-y-1 pl-5 text-sm text-white/90">
+                            {children}
+                          </ul>
+                        ),
+                        ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
+                          <ol className="mb-2 list-decimal space-y-1 pl-5 text-sm text-white/90">
+                            {children}
+                          </ol>
+                        ),
+                        li: ({ children }: ComponentPropsWithoutRef<"li">) => <li>{children}</li>,
+                        hr: () => <hr className="my-3 border-white/15" />,
+                        table: ({ children }: ComponentPropsWithoutRef<"table">) => (
+                          <div className="my-2 overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm text-white/90">
+                              {children}
+                            </table>
+                          </div>
+                        ),
+                        thead: ({ children }: ComponentPropsWithoutRef<"thead">) => (
+                          <thead className="bg-white/5 text-white">{children}</thead>
+                        ),
+                        tbody: ({ children }: ComponentPropsWithoutRef<"tbody">) => (
+                          <tbody>{children}</tbody>
+                        ),
+                        tr: ({ children }: ComponentPropsWithoutRef<"tr">) => (
+                          <tr className="border-b border-white/10 last:border-b-0">{children}</tr>
+                        ),
+                        th: ({ children }: ComponentPropsWithoutRef<"th">) => (
+                          <th className="border border-white/10 px-2 py-1.5 font-medium">
+                            {children}
+                          </th>
+                        ),
+                        td: ({ children }: ComponentPropsWithoutRef<"td">) => (
+                          <td className="border border-white/10 px-2 py-1.5">{children}</td>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-white/90">
+                      {message.content}
+                    </p>
+                  )}
                   {message.role === "assistant" ? (
                     <p className="mt-4 border-t border-white/10 pt-3 text-xs text-white/45">
                       This is informational only, not legal or financial advice.
@@ -535,7 +768,16 @@ export default function DashboardClient({
                   ) : null}
                 </article>
               ))}
-              {isLoading ? <p className="text-sm text-white/50">Nuvare AI is thinking...</p> : null}
+              {isLoading ? (
+                <p
+                  className={cn(
+                    "text-sm text-white/50 transition-opacity duration-300",
+                    isThinkingPhraseVisible ? "opacity-100" : "opacity-0",
+                  )}
+                >
+                  {thinkingPhrases[thinkingPhraseIndex] ?? DEFAULT_THINKING_PHRASES[0]}
+                </p>
+              ) : null}
             </div>
 
             <section className="rounded-xl border border-white/12 bg-[#101010] p-4">

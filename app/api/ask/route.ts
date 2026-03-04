@@ -78,27 +78,40 @@ export async function POST(request: Request) {
     const onboardingAnswers =
       (profile?.onboarding_answers as OnboardingAnswers | null) ?? {};
     const anthropic = new Anthropic({ apiKey });
-    const completion = await anthropic.messages.create({
+    const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 900,
       system: buildSystemPrompt(onboardingAnswers),
       messages,
     });
+    const encoder = new TextEncoder();
 
-    const answer = completion.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text)
-      .join("\n")
-      .trim();
+    const readableStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const text of stream.textStream) {
+            if (!text) continue;
+            controller.enqueue(encoder.encode(text));
+          }
+          controller.close();
+        } catch (streamError) {
+          controller.error(streamError);
+        }
+      },
+      cancel() {
+        stream.abort();
+      },
+    });
 
-    if (!answer) {
-      return NextResponse.json(
-        { error: "No response returned by Anthropic." },
-        { status: 502 },
-      );
-    }
+    const response = new Response(readableStream, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    });
 
-    return NextResponse.json({ answer });
+    return response;
   } catch (error) {
     return NextResponse.json(
       {
