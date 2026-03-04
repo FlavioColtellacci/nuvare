@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -296,6 +297,12 @@ export default function DashboardClient({
             NUVARE
           </p>
           <div className="flex items-center gap-3 text-sm">
+            <Link
+              href="/ask"
+              className="rounded-md px-3 py-2 text-white/75 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              Ask
+            </Link>
             <p className="text-white/55">{userEmail}</p>
             <Button
               variant="ghost"
