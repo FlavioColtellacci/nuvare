@@ -1,28 +1,47 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+"use client";
 
-import { createClient } from "@/lib/supabase/server";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import VaultClient from "@/app/vault/vault-client";
 import Disclaimer from "@/components/Disclaimer";
+import { createClient } from "@/lib/supabase/client";
 
-export const metadata: Metadata = {
-  title: "Document Vault - Nuvare",
-};
+export default function VaultPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-export default async function VaultPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/onboarding");
-  }
+      if (isCancelled) return;
+      if (!user) {
+        router.push("/onboarding");
+        return;
+      }
+
+      setUserId(user.id);
+      setIsLoading(false);
+    }
+    void loadUser();
+    return () => {
+      isCancelled = true;
+    };
+  }, [router, supabase]);
 
   return (
-    <div>
-      <VaultClient userId={user.id} />
+    <main className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        <button onClick={() => router.back()}>← Back</button>
+        {isLoading || !userId ? null : <VaultClient userId={userId} />}
+      </div>
       <Disclaimer />
-    </div>
+    </main>
   );
 }

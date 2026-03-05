@@ -15,7 +15,6 @@ import remarkGfm from "remark-gfm";
 import { Globe, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import Disclaimer from "@/components/Disclaimer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
@@ -1889,9 +1888,9 @@ export default function DashboardClient({
                 </p>
               ) : null}
               <p className="mt-2 text-xs text-white/40">Press Enter to send, Shift+Enter for new line.</p>
-              <div className="mt-2">
-                <Disclaimer />
-              </div>
+              <p className="mt-1 mb-2 text-xs text-white/30">
+                This is informational only, not legal or financial advice.
+              </p>
               {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
             </section>
           </section>

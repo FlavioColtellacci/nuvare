@@ -20,9 +20,9 @@ export default function CountriesClient({ countries }: { countries: Country[] })
   }, [countries, normalizedQuery]);
 
   return (
-    <main className="onboarding-bg relative min-h-screen bg-black px-6 py-12 text-white md:px-10">
+    <main className="onboarding-bg relative min-h-screen flex flex-col bg-black px-6 py-12 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
-      <div className="relative mx-auto w-full max-w-4xl">
+      <div className="relative mx-auto w-full max-w-4xl flex-1">
         <button
           type="button"
           onClick={() => router.back()}
@@ -69,8 +69,8 @@ export default function CountriesClient({ countries }: { countries: Country[] })
             ))}
           </div>
         )}
-        <Disclaimer />
       </div>
+      <Disclaimer />
     </main>
   );
 }
