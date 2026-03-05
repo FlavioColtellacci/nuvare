@@ -1,0 +1,22 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/server";
+import VaultClient from "@/app/vault/vault-client";
+
+export const metadata: Metadata = {
+  title: "Document Vault - Nuvare",
+};
+
+export default async function VaultPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/onboarding");
+  }
+
+  return <VaultClient userId={user.id} />;
+}

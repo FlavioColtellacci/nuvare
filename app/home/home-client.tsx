@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1275,6 +1276,18 @@ export default function DashboardClient({
             >
               New Chat
             </Button>
+            <Link
+              href={subscriptionTier === "professional" ? "/vault" : "/pricing"}
+              className={cn(
+                "mt-3 inline-flex h-10 w-full items-center gap-2.5 rounded-lg border px-3 text-sm transition-colors",
+                subscriptionTier === "professional"
+                  ? "border-white/20 bg-[#101010] text-white hover:bg-white/10"
+                  : "border-white/10 bg-[#0d0d0d] text-white/45 hover:bg-white/5 hover:text-white/70",
+              )}
+            >
+              <Shield className="h-4 w-4 shrink-0" />
+              <span>Document Vault</span>
+            </Link>
 
             <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
               <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/45">
