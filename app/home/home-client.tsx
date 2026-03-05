@@ -638,11 +638,7 @@ export default function DashboardClient({
 
     textarea.style.height = "0px";
     const computedStyle = window.getComputedStyle(textarea);
-    const lineHeight = Number.parseFloat(computedStyle.lineHeight) || 20;
-    const paddingY =
-      Number.parseFloat(computedStyle.paddingTop) +
-      Number.parseFloat(computedStyle.paddingBottom);
-    const maxHeight = lineHeight * 5 + paddingY;
+    const maxHeight = 120;
     const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
 
     textarea.style.height = `${Math.max(nextHeight, 44)}px`;
@@ -1783,12 +1779,14 @@ export default function DashboardClient({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-1 inline-flex shrink-0 items-center justify-center px-1 text-xl text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
+                  className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center p-1 text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
                   aria-label="Attach file"
                 >
-                  +
+                  <span className="inline-flex h-4 w-4 items-center justify-center text-sm leading-none">
+                    +
+                  </span>
                 </button>
-                <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#101010] px-3 py-2.5">
+                <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#101010] px-3 py-2">
                   {selectedUploadFile ? (
                     <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-xs text-white/80">
                       <span className="truncate">{selectedUploadFile.name}</span>
@@ -1808,7 +1806,7 @@ export default function DashboardClient({
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-                    className="h-11 min-h-0 resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
+                    className="min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -1831,7 +1829,7 @@ export default function DashboardClient({
                       onMouseLeave={() => setIsDeepResearchHovered(false)}
                       disabled={isLoading}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
+                        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border p-1 text-xs transition-colors",
                         subscriptionTier !== "professional"
                           ? "cursor-not-allowed border-white/15 bg-white/[0.03] text-white/55 opacity-40"
                           : isDeepResearch
@@ -1846,30 +1844,38 @@ export default function DashboardClient({
                       {subscriptionTier === "professional" &&
                       isDeepResearch &&
                       isDeepResearchHovered ? (
-                        <span>× Deep research</span>
+                        <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
+                          ×
+                        </span>
                       ) : (
-                        <>
-                          <span aria-hidden>🔭</span>
-                          <span>Deep research</span>
-                        </>
+                        <span
+                          aria-hidden
+                          className="inline-flex h-4 w-4 items-center justify-center text-[11px] leading-none"
+                        >
+                          🔭
+                        </span>
                       )}
                     </button>
                     {isLoading ? (
                       <Button
                         onClick={() => void stopGeneration()}
-                        className="h-8 w-8 px-0 text-sm"
+                        className="h-7 w-7 rounded-full p-1 text-sm"
                         title="Stop"
                       >
-                        ■
+                        <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
+                          ■
+                        </span>
                       </Button>
                     ) : (
                       <Button
                         onClick={() => void submitQuestion()}
                         disabled={!input.trim()}
-                        className="h-8 w-8 px-0 text-sm"
+                        className="h-7 w-7 rounded-full p-1 text-sm"
                         title="Send"
                       >
-                        ↑
+                        <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
+                          ↑
+                        </span>
                       </Button>
                     )}
                   </div>

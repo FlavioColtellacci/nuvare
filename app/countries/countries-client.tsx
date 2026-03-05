@@ -30,7 +30,7 @@ export default function CountriesClient({ countries }: { countries: Country[] })
           <ArrowLeft className="h-3.5 w-3.5" />
           Back
         </button>
-        <h1 className="font-editorial text-3xl text-white">Country Intelligence</h1>
+        <h1 className="font-editorial text-5xl text-white">Country Intelligence</h1>
         <p className="mt-3 text-sm text-white/55">Live regulatory guides for any country in the world.</p>
 
         <div className="relative mt-10">
