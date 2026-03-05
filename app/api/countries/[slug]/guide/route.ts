@@ -60,10 +60,10 @@ async function fetchGuideFromPerplexity(countryName: string, apiKey: string) {
 
 export async function GET(
   _request: Request,
-  context: { params: { slug: string } },
+  context: { params: Promise<{ slug: string }> },
 ) {
   try {
-    const { slug } = context.params;
+    const { slug } = await context.params;
     const country = COUNTRIES.find((item) => item.slug === slug);
     if (!country) {
       return NextResponse.json({ error: "Country not found." }, { status: 404 });
