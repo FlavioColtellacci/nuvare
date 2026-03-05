@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import VaultClient from "@/app/vault/vault-client";
+import Disclaimer from "@/components/Disclaimer";
 
 export const metadata: Metadata = {
   title: "Document Vault - Nuvare",
@@ -18,5 +19,10 @@ export default async function VaultPage() {
     redirect("/onboarding");
   }
 
-  return <VaultClient userId={user.id} />;
+  return (
+    <>
+      <VaultClient userId={user.id} />
+      <Disclaimer />
+    </>
+  );
 }

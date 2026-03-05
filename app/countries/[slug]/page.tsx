@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import CountriesClient from "@/app/countries/countries-client";
+import CountryGuideClient from "@/app/countries/[slug]/country-guide-client";
 import { COUNTRIES } from "@/app/countries/countries-data";
-import Disclaimer from "@/components/Disclaimer";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Country Intelligence - Nuvare",
+  title: "Country Guide - Nuvare",
 };
 
-export default async function CountriesPage() {
+export default async function CountryGuidePage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const { slug } = params;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,10 +37,16 @@ export default async function CountriesPage() {
     redirect("/pricing");
   }
 
+  const country = COUNTRIES.find((item) => item.slug === slug);
+  if (!country) {
+    notFound();
+  }
+
   return (
-    <>
-      <CountriesClient countries={COUNTRIES} />
-      <Disclaimer />
-    </>
+    <CountryGuideClient
+      slug={country.slug}
+      countryName={country.name}
+      countryFlag={country.flag}
+    />
   );
 }

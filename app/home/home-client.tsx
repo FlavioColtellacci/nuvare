@@ -15,6 +15,7 @@ import remarkGfm from "remark-gfm";
 import { Globe, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import Disclaimer from "@/components/Disclaimer";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
@@ -1777,17 +1778,17 @@ export default function DashboardClient({
               ) : null}
             </div>
 
-            <section className="p-4">
-              <div className="flex items-start gap-3">
+            <section className="px-2 py-3">
+              <div className="flex items-start gap-2.5">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="mt-1 inline-flex shrink-0 items-center justify-center px-1 text-2xl text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
+                  className="mt-1 inline-flex shrink-0 items-center justify-center px-1 text-xl text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
                   aria-label="Attach file"
                 >
                   +
                 </button>
-                <div className="min-w-0 flex-1 rounded-xl border border-white/12 bg-[#101010] p-4">
+                <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#101010] px-3 py-2.5">
                   {selectedUploadFile ? (
                     <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-xs text-white/80">
                       <span className="truncate">{selectedUploadFile.name}</span>
@@ -1807,7 +1808,7 @@ export default function DashboardClient({
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-                    className="h-11 min-h-0 resize-none border-0 bg-transparent px-0 py-2 shadow-none focus-visible:ring-0"
+                    className="h-11 min-h-0 resize-none border-0 bg-transparent px-0 py-1.5 text-sm shadow-none focus-visible:ring-0"
                     onKeyDown={(event) => {
                       if (event.key === "Enter" && !event.shiftKey) {
                         event.preventDefault();
@@ -1830,7 +1831,7 @@ export default function DashboardClient({
                       onMouseLeave={() => setIsDeepResearchHovered(false)}
                       disabled={isLoading}
                       className={cn(
-                        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-0.5 text-xs transition-colors",
+                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
                         subscriptionTier !== "professional"
                           ? "cursor-not-allowed border-white/15 bg-white/[0.03] text-white/55 opacity-40"
                           : isDeepResearch
@@ -1856,7 +1857,7 @@ export default function DashboardClient({
                     {isLoading ? (
                       <Button
                         onClick={() => void stopGeneration()}
-                        className="h-9 w-9 px-0"
+                        className="h-8 w-8 px-0 text-sm"
                         title="Stop"
                       >
                         ■
@@ -1865,7 +1866,7 @@ export default function DashboardClient({
                       <Button
                         onClick={() => void submitQuestion()}
                         disabled={!input.trim()}
-                        className="h-9 w-9 px-0"
+                        className="h-8 w-8 px-0 text-sm"
                         title="Send"
                       >
                         ↑
@@ -1885,10 +1886,10 @@ export default function DashboardClient({
                   </Link>
                 </p>
               ) : null}
-              <p className="mt-3 text-xs text-white/45">Press Enter to send, Shift+Enter for new line.</p>
-              <p className="mt-2 text-xs text-white/45">
-                This is informational only, not legal or financial advice.
-              </p>
+              <p className="mt-2 text-xs text-white/40">Press Enter to send, Shift+Enter for new line.</p>
+              <div className="mt-2">
+                <Disclaimer />
+              </div>
               {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
             </section>
           </section>

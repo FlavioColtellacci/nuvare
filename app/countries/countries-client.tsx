@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
 import { type Country } from "@/app/countries/countries-data";
 
 export default function CountriesClient({ countries }: { countries: Country[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -20,12 +22,16 @@ export default function CountriesClient({ countries }: { countries: Country[] })
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-12 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-4xl">
-        <h1 className="font-editorial text-5xl leading-tight text-white md:text-6xl">
-          Country Intelligence
-        </h1>
-        <p className="mt-4 text-base text-white/60 md:text-lg">
-          Live regulatory guides for any country in the world.
-        </p>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back
+        </button>
+        <h1 className="font-editorial text-3xl text-white">Country Intelligence</h1>
+        <p className="mt-3 text-sm text-white/55">Live regulatory guides for any country in the world.</p>
 
         <div className="relative mt-10">
           <Search
