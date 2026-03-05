@@ -1,7 +1,9 @@
 export default function Disclaimer() {
   return (
-    <p className="text-center text-xs text-white/35">
-      This is informational only, not legal or financial advice.
-    </p>
+    <div className="w-full text-center py-6">
+      <p className="text-xs text-white/30">
+        This is informational only, not legal or financial advice.
+      </p>
+    </div>
   );
 }

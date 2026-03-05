@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
 import { type Country } from "@/app/countries/countries-data";
+import Disclaimer from "@/components/Disclaimer";
 
 export default function CountriesClient({ countries }: { countries: Country[] }) {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function CountriesClient({ countries }: { countries: Country[] })
   }, [countries, normalizedQuery]);
 
   return (
-    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-12 text-white md:px-10">
+    <main className="onboarding-bg relative min-h-screen bg-black px-6 py-12 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-4xl">
         <button
@@ -68,6 +69,7 @@ export default function CountriesClient({ countries }: { countries: Country[] })
             ))}
           </div>
         )}
+        <Disclaimer />
       </div>
     </main>
   );

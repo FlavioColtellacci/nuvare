@@ -20,9 +20,9 @@ export default async function VaultPage() {
   }
 
   return (
-    <>
+    <div>
       <VaultClient userId={user.id} />
       <Disclaimer />
-    </>
+    </div>
   );
 }

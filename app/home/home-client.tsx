@@ -1829,7 +1829,7 @@ export default function DashboardClient({
                       onMouseLeave={() => setIsDeepResearchHovered(false)}
                       disabled={isLoading}
                       className={cn(
-                        "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border p-1 text-xs transition-colors",
+                        "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
                         subscriptionTier !== "professional"
                           ? "cursor-not-allowed border-white/15 bg-white/[0.03] text-white/55 opacity-40"
                           : isDeepResearch
@@ -1844,16 +1844,12 @@ export default function DashboardClient({
                       {subscriptionTier === "professional" &&
                       isDeepResearch &&
                       isDeepResearchHovered ? (
-                        <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
-                          ×
-                        </span>
+                        <span>× Deep Research</span>
                       ) : (
-                        <span
-                          aria-hidden
-                          className="inline-flex h-4 w-4 items-center justify-center text-[11px] leading-none"
-                        >
-                          🔭
-                        </span>
+                        <>
+                          <span aria-hidden>🔭</span>
+                          <span>Deep Research</span>
+                        </>
                       )}
                     </button>
                     {isLoading ? (

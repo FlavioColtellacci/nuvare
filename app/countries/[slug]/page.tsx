@@ -136,8 +136,9 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
   }
 
   const countryName = slugToDisplayName(slug);
-  const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
-  const baseUrl = envBaseUrl.endsWith("/") ? envBaseUrl.slice(0, -1) : envBaseUrl;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
