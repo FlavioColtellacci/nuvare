@@ -47,6 +47,7 @@ type VaultDocument = {
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
+const SKIP_DELETE_CONFIRM_STORAGE_KEY = "vault_skip_delete_confirm";
 
 function isExtractedDate(value: unknown): value is ExtractedDate {
   if (!value || typeof value !== "object") return false;
@@ -125,6 +126,13 @@ export default function VaultClient({ userId }: { userId: string }) {
     fileType: string | null;
     fileName: string;
   } | null>(null);
+  const [skipDeleteConfirm, setSkipDeleteConfirm] = useState(false);
+  const [deleteConfirmationDocument, setDeleteConfirmationDocument] = useState<{
+    id: string;
+    fileName: string;
+  } | null>(null);
+  const [rememberDeleteChoice, setRememberDeleteChoice] = useState(false);
+  const [isConfirmDeleting, setIsConfirmDeleting] = useState(false);
 
   const stopPolling = useCallback((documentId: string) => {
     const intervalId = pollersRef.current[documentId];
@@ -191,11 +199,10 @@ export default function VaultClient({ userId }: { userId: string }) {
   }, []);
 
   useEffect(() => {
-    if (!previewDocument) return;
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPreviewDocument(null);
+        setDeleteConfirmationDocument(null);
       }
     };
 
@@ -203,7 +210,16 @@ export default function VaultClient({ userId }: { userId: string }) {
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [previewDocument]);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const storedPreference = window.localStorage.getItem(SKIP_DELETE_CONFIRM_STORAGE_KEY);
+      setSkipDeleteConfirm(storedPreference === "true");
+    } catch {
+      setSkipDeleteConfirm(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -322,6 +338,56 @@ export default function VaultClient({ userId }: { userId: string }) {
       setDocuments(previous);
       setErrorMessage(error instanceof Error ? error.message : "Unable to delete document.");
     }
+  }
+
+  function requestDeleteDocument(documentId: string, fileName: string) {
+    if (skipDeleteConfirm) {
+      void handleDeleteDocument(documentId);
+      return;
+    }
+
+    setRememberDeleteChoice(false);
+    setDeleteConfirmationDocument({ id: documentId, fileName });
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteConfirmationDocument || isConfirmDeleting) return;
+
+    if (rememberDeleteChoice) {
+      try {
+        window.localStorage.setItem(SKIP_DELETE_CONFIRM_STORAGE_KEY, "true");
+      } catch {
+        // Ignore storage write failures.
+      }
+      setSkipDeleteConfirm(true);
+    }
+
+    const nextDocumentId = deleteConfirmationDocument.id;
+    setDeleteConfirmationDocument(null);
+    setRememberDeleteChoice(false);
+    setIsConfirmDeleting(true);
+
+    try {
+      await handleDeleteDocument(nextDocumentId);
+    } finally {
+      setIsConfirmDeleting(false);
+    }
+  }
+
+  function handleCancelDelete() {
+    if (isConfirmDeleting) return;
+
+    if (rememberDeleteChoice) {
+      try {
+        window.localStorage.setItem(SKIP_DELETE_CONFIRM_STORAGE_KEY, "false");
+      } catch {
+        // Ignore storage write failures.
+      }
+      setSkipDeleteConfirm(false);
+    }
+
+    setDeleteConfirmationDocument(null);
+    setRememberDeleteChoice(false);
   }
 
   async function handlePreviewDocument(documentId: string) {
@@ -560,7 +626,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void handleDeleteDocument(document.id)}
+                        onClick={() => requestDeleteDocument(document.id, document.file_name)}
                         className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
                         aria-label={`Delete ${document.file_name}`}
                       >
@@ -652,11 +718,7 @@ export default function VaultClient({ userId }: { userId: string }) {
       {previewDocument ? (
         <div
           className="fixed inset-0 z-50 bg-black/80"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) {
-              setPreviewDocument(null);
-            }
-          }}
+          onClick={() => setPreviewDocument(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`Preview ${previewDocument.fileName}`}
@@ -670,7 +732,10 @@ export default function VaultClient({ userId }: { userId: string }) {
             <X className="h-4 w-4" />
           </button>
 
-          <div className="absolute inset-x-0 top-4 flex justify-center px-16">
+          <div
+            className="absolute inset-x-0 top-4 flex justify-center px-16"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="inline-flex max-w-[90vw] items-center gap-3 rounded-md bg-black/60 px-3 py-1.5 text-xs text-zinc-300">
               <span className="truncate">{previewDocument.fileName}</span>
               {isPdf(previewDocument.fileType) ? (
@@ -686,7 +751,10 @@ export default function VaultClient({ userId }: { userId: string }) {
             </div>
           </div>
 
-          <div className="flex min-h-screen items-center justify-center p-6 pt-20">
+          <div
+            className="flex min-h-screen items-center justify-center p-6 pt-20"
+            onClick={(event) => event.stopPropagation()}
+          >
             {isPdf(previewDocument.fileType) ? (
               <iframe
                 src={previewDocument.signedUrl}
@@ -709,6 +777,61 @@ export default function VaultClient({ userId }: { userId: string }) {
                 Open document in new tab
               </a>
             )}
+          </div>
+        </div>
+      ) : null}
+      {deleteConfirmationDocument ? (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80"
+          onClick={handleCancelDelete}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Delete document confirmation"
+        >
+          <div
+            className="mx-auto mt-[15vh] w-[min(92vw,28rem)] rounded-2xl border border-white/20 bg-[#0d0d0d] p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 className="text-lg font-medium text-white">Delete document?</h2>
+            <p className="mt-2 text-sm text-zinc-300">
+              This will permanently remove {deleteConfirmationDocument.fileName} from your vault.
+            </p>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCancelDelete}
+                disabled={isConfirmDeleting}
+                className="inline-flex h-9 items-center justify-center rounded-md border border-white/25 px-4 text-sm text-white/85 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmDelete()}
+                disabled={isConfirmDeleting}
+                className="inline-flex h-9 items-center justify-center rounded-md border border-red-200/30 bg-white/95 px-4 text-sm text-red-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isConfirmDeleting ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Delete
+                  </span>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+
+            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 text-xs text-zinc-300">
+              <input
+                type="checkbox"
+                checked={rememberDeleteChoice}
+                onChange={(event) => setRememberDeleteChoice(event.target.checked)}
+                className="h-3.5 w-3.5 rounded border-white/30 bg-black/50"
+              />
+              Remember my choice
+            </label>
           </div>
         </div>
       ) : null}
