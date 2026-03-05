@@ -20,7 +20,6 @@ import {
   Loader2,
   Trash2,
   Upload,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -740,11 +739,28 @@ export default function VaultClient({ userId }: { userId: string }) {
         >
           <button
             type="button"
-            onClick={() => setPreviewDocument(null)}
-            className="absolute right-4 top-4 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-white/20 bg-black/60 text-white/80 transition-colors hover:text-white"
+            onClick={(event) => {
+              event.stopPropagation();
+              setPreviewDocument(null);
+            }}
+            className="absolute top-4 right-4 z-50 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
             aria-label="Close preview"
           >
-            <X className="pointer-events-none h-4 w-4" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ pointerEvents: "none" }}
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
 
           <div
