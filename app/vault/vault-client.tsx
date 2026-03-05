@@ -411,7 +411,7 @@ export default function VaultClient({ userId }: { userId: string }) {
       <div className="relative mx-auto w-full max-w-5xl">
         <button
           type="button"
-          onClick={() => router.push("/home")}
+          onClick={() => router.back()}
           className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -433,7 +433,7 @@ export default function VaultClient({ userId }: { userId: string }) {
           }}
           disabled={isUploading}
           className={cn(
-            "mt-8 flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
+            "mt-8 flex w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-14 text-center transition-colors",
             isDragActive
               ? "border-white/55 bg-white/10"
               : "border-white/20 bg-[#0d0d0d]/70 hover:border-white/35 hover:bg-[#121212]",
@@ -481,12 +481,12 @@ export default function VaultClient({ userId }: { userId: string }) {
                 return (
                   <article
                     key={document.id}
-                    className="relative rounded-xl border border-white/15 bg-[#0d0d0d] p-4"
+                    className="relative cursor-pointer rounded-xl border border-white/15 bg-[#0d0d0d] p-4"
                   >
                     <button
                       type="button"
                       onClick={() => void handleDeleteDocument(document.id)}
-                      className="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                      className="absolute right-3 top-3 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
                       aria-label={`Delete ${document.file_name}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -522,7 +522,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                               [document.id]: !prev[document.id],
                             }))
                           }
-                          className="inline-flex items-center gap-1.5 text-xs text-white/75 transition-colors hover:text-white"
+                          className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-white/75 transition-colors hover:text-white"
                         >
                           {isExpanded ? (
                             <>

@@ -1277,9 +1277,9 @@ export default function DashboardClient({
               New Chat
             </Button>
             <Link
-              href={subscriptionTier === "professional" ? "/vault" : "/pricing"}
+              href="/vault"
               className={cn(
-                "mt-3 inline-flex h-10 w-full items-center gap-2.5 rounded-lg border px-3 text-sm transition-colors",
+                "mt-3 inline-flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg border px-3 text-sm transition-colors",
                 subscriptionTier === "professional"
                   ? "border-white/20 bg-[#101010] text-white hover:bg-white/10"
                   : "border-white/10 bg-[#0d0d0d] text-white/45 hover:bg-white/5 hover:text-white/70",
@@ -1453,7 +1453,7 @@ export default function DashboardClient({
               {subscriptionTier === "none" ? (
                 <Link
                   href="/pricing"
-                  className="mt-2 inline-flex text-xs text-white/45 transition-colors hover:text-white/75"
+                  className="mt-2 inline-flex cursor-pointer text-xs text-white/45 transition-colors hover:text-white/75"
                 >
                   Start your plan →
                 </Link>
@@ -1461,7 +1461,7 @@ export default function DashboardClient({
               {subscriptionTier === "core" ? (
                 <Link
                   href="/pricing"
-                  className="mt-2 inline-flex text-xs text-white/45 transition-colors hover:text-white/75"
+                  className="mt-2 inline-flex cursor-pointer text-xs text-white/45 transition-colors hover:text-white/75"
                 >
                   Upgrade to Professional →
                 </Link>

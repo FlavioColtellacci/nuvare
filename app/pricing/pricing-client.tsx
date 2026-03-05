@@ -81,7 +81,7 @@ export default function PricingClient({
             type="button"
             onClick={() => setBillingInterval("monthly")}
             className={cn(
-              "rounded-full px-5 py-2 text-sm transition-colors",
+              "cursor-pointer rounded-full px-5 py-2 text-sm transition-colors",
               billingInterval === "monthly" ? "bg-white text-black" : "text-white/70 hover:text-white",
             )}
           >
@@ -91,7 +91,7 @@ export default function PricingClient({
             type="button"
             onClick={() => setBillingInterval("yearly")}
             className={cn(
-              "inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm transition-colors",
+              "inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-sm transition-colors",
               billingInterval === "yearly" ? "bg-white text-black" : "text-white/70 hover:text-white",
             )}
           >
@@ -103,7 +103,7 @@ export default function PricingClient({
         </div>
 
         <div className="mt-12 grid w-full max-w-4xl gap-6 md:grid-cols-2">
-          <article className="flex h-full flex-col rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
+          <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
             <p className="text-xs tracking-[0.2em] text-white/60">CORE</p>
             <div className="mt-5">
               <p className="text-4xl text-white">
@@ -126,13 +126,13 @@ export default function PricingClient({
               type="button"
               onClick={() => void startCheckout("core")}
               disabled={loadingPlan !== null}
-              className="mt-7 h-11 w-full rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-7 h-11 w-full cursor-pointer rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingPlan === "core" ? "Redirecting..." : "Get started with Core"}
             </button>
           </article>
 
-          <article className="flex h-full flex-col rounded-2xl border border-white/45 bg-[#101010] p-7">
+          <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/45 bg-[#101010] p-7">
             <p className="inline-flex rounded-full border border-white/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/80">
               Most popular
             </p>
@@ -158,7 +158,7 @@ export default function PricingClient({
               type="button"
               onClick={() => void startCheckout("professional")}
               disabled={loadingPlan !== null}
-              className="mt-7 h-11 w-full rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-7 h-11 w-full cursor-pointer rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loadingPlan === "professional"
                 ? "Redirecting..."
