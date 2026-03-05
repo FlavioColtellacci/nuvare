@@ -14,11 +14,13 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  Eye,
   FileImage,
   FileText,
   Loader2,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -97,6 +99,10 @@ function isPdf(fileType: string | null) {
   return fileType === "application/pdf";
 }
 
+function isImage(fileType: string | null) {
+  return fileType === "image/jpeg" || fileType === "image/png";
+}
+
 export default function VaultClient({ userId }: { userId: string }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -111,6 +117,14 @@ export default function VaultClient({ userId }: { userId: string }) {
   const [successMessage, setSuccessMessage] = useState("");
   const [expandedByDocumentId, setExpandedByDocumentId] = useState<Record<string, boolean>>({});
   const [addingByDocumentId, setAddingByDocumentId] = useState<Record<string, boolean>>({});
+  const [previewLoadingByDocumentId, setPreviewLoadingByDocumentId] = useState<
+    Record<string, boolean>
+  >({});
+  const [previewDocument, setPreviewDocument] = useState<{
+    signedUrl: string;
+    fileType: string | null;
+    fileName: string;
+  } | null>(null);
 
   const stopPolling = useCallback((documentId: string) => {
     const intervalId = pollersRef.current[documentId];
@@ -175,6 +189,21 @@ export default function VaultClient({ userId }: { userId: string }) {
       pollersRef.current = {};
     };
   }, []);
+
+  useEffect(() => {
+    if (!previewDocument) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewDocument(null);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [previewDocument]);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,6 +321,37 @@ export default function VaultClient({ userId }: { userId: string }) {
     } catch (error) {
       setDocuments(previous);
       setErrorMessage(error instanceof Error ? error.message : "Unable to delete document.");
+    }
+  }
+
+  async function handlePreviewDocument(documentId: string) {
+    setErrorMessage("");
+    setPreviewLoadingByDocumentId((prev) => ({ ...prev, [documentId]: true }));
+
+    try {
+      const response = await fetch(`/api/vault/preview?documentId=${encodeURIComponent(documentId)}`);
+      const payload = (await response.json().catch(() => null)) as
+        | {
+            signedUrl?: string;
+            file_type?: string | null;
+            file_name?: string;
+            error?: string;
+          }
+        | null;
+
+      if (!response.ok || !payload?.signedUrl) {
+        throw new Error(payload?.error ?? "Unable to preview document.");
+      }
+
+      setPreviewDocument({
+        signedUrl: payload.signedUrl,
+        fileType: typeof payload.file_type === "string" ? payload.file_type : null,
+        fileName: payload.file_name ?? "Document",
+      });
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to preview document.");
+    } finally {
+      setPreviewLoadingByDocumentId((prev) => ({ ...prev, [documentId]: false }));
     }
   }
 
@@ -477,22 +537,38 @@ export default function VaultClient({ userId }: { userId: string }) {
               {documents.map((document) => {
                 const isExpanded = expandedByDocumentId[document.id] ?? false;
                 const hasExtractedDates = document.extracted_dates.length > 0;
+                const isPreviewLoading = previewLoadingByDocumentId[document.id] === true;
 
                 return (
                   <article
                     key={document.id}
                     className="relative cursor-pointer rounded-xl border border-white/15 bg-[#0d0d0d] p-4"
                   >
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteDocument(document.id)}
-                      className="absolute right-3 top-3 inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
-                      aria-label={`Delete ${document.file_name}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="absolute right-3 top-3 inline-flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handlePreviewDocument(document.id)}
+                        disabled={isPreviewLoading}
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                        aria-label={`Preview ${document.file_name}`}
+                      >
+                        {isPreviewLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteDocument(document.id)}
+                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                        aria-label={`Delete ${document.file_name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
 
-                    <div className="flex items-start gap-3 pr-9">
+                    <div className="flex items-start gap-3 pr-20">
                       <div className="mt-0.5 rounded-md border border-white/15 bg-black/50 p-2 text-white/75">
                         {isPdf(document.file_type) ? (
                           <FileText className="h-4 w-4" />
@@ -573,6 +649,69 @@ export default function VaultClient({ userId }: { userId: string }) {
           )}
         </section>
       </div>
+      {previewDocument ? (
+        <div
+          className="fixed inset-0 z-50 bg-black/80"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setPreviewDocument(null);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview ${previewDocument.fileName}`}
+        >
+          <button
+            type="button"
+            onClick={() => setPreviewDocument(null)}
+            className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-black/60 text-white/80 transition-colors hover:text-white"
+            aria-label="Close preview"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
+          <div className="absolute inset-x-0 top-4 flex justify-center px-16">
+            <div className="inline-flex max-w-[90vw] items-center gap-3 rounded-md bg-black/60 px-3 py-1.5 text-xs text-zinc-300">
+              <span className="truncate">{previewDocument.fileName}</span>
+              {isPdf(previewDocument.fileType) ? (
+                <a
+                  href={previewDocument.signedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="whitespace-nowrap text-zinc-300 underline underline-offset-2 hover:text-white"
+                >
+                  Open in new tab
+                </a>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex min-h-screen items-center justify-center p-6 pt-20">
+            {isPdf(previewDocument.fileType) ? (
+              <iframe
+                src={previewDocument.signedUrl}
+                title={previewDocument.fileName}
+                className="h-[85vh] w-[90vw] rounded-md border border-white/20 bg-white"
+              />
+            ) : isImage(previewDocument.fileType) ? (
+              <img
+                src={previewDocument.signedUrl}
+                alt={previewDocument.fileName}
+                className="max-h-screen max-w-3xl object-contain"
+              />
+            ) : (
+              <a
+                href={previewDocument.signedUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-zinc-200 underline underline-offset-2 hover:text-white"
+              >
+                Open document in new tab
+              </a>
+            )}
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
