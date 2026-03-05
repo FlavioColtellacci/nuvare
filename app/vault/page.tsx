@@ -36,9 +36,8 @@ export default function VaultPage() {
   }, [router, supabase]);
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col bg-black text-white">
       <div className="flex-1">
-        <button onClick={() => router.back()}>← Back</button>
         {isLoading || !userId ? null : <VaultClient userId={userId} />}
       </div>
       <Disclaimer />

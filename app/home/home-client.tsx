@@ -1888,7 +1888,7 @@ export default function DashboardClient({
                 </p>
               ) : null}
               <p className="mt-2 text-xs text-white/40">Press Enter to send, Shift+Enter for new line.</p>
-              <p className="mt-1 mb-2 text-xs text-white/30">
+              <p className="mt-1 text-xs text-white/30 text-center w-full">
                 This is informational only, not legal or financial advice.
               </p>
               {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
