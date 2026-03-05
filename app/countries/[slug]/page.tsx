@@ -68,6 +68,19 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
 
   try {
     const { content, updatedAt, countryName } = await getCountryGuide(slug);
+    const { error: viewedCountryError } = await supabase.from("user_countries").upsert(
+      {
+        user_id: session.user.id,
+        slug,
+        country_name: countryName,
+        last_viewed: new Date().toISOString(),
+      },
+      { onConflict: "user_id,slug" },
+    );
+
+    if (viewedCountryError) {
+      console.error("Failed to track viewed country", viewedCountryError);
+    }
 
     return (
       <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">

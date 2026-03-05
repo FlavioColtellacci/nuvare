@@ -12,6 +12,11 @@ type OnboardingAnswers = {
   [key: string]: unknown;
 };
 
+type ViewedCountry = {
+  slug: string;
+  countryName: string;
+};
+
 export const metadata: Metadata = {
   title: "Nuvare",
 };
@@ -37,6 +42,16 @@ export default async function HomePage() {
   const manualDeadlines = Array.isArray(onboardingAnswers.manualDeadlines)
     ? onboardingAnswers.manualDeadlines
     : [];
+  const { data: viewedCountriesData } = await supabase
+    .from("user_countries")
+    .select("slug, country_name")
+    .eq("user_id", user.id)
+    .order("last_viewed", { ascending: false })
+    .limit(5);
+  const viewedCountries: ViewedCountry[] = (viewedCountriesData ?? []).map((country) => ({
+    slug: country.slug as string,
+    countryName: country.country_name as string,
+  }));
 
   return (
     <DashboardClient
@@ -45,6 +60,7 @@ export default async function HomePage() {
       hasProfile={Boolean(profile)}
       onboardingAnswers={onboardingAnswers}
       initialManualDeadlines={manualDeadlines}
+      viewedCountries={viewedCountries}
     />
   );
 }

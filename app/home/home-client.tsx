@@ -61,6 +61,11 @@ type ConversationSummary = {
 
 type SubscriptionTier = "none" | "core" | "professional";
 
+type ViewedCountry = {
+  slug: string;
+  countryName: string;
+};
+
 const DEFAULT_THINKING_PHRASES = [
   "Analysing your profile...",
   "Reviewing your residency setup...",
@@ -393,12 +398,14 @@ export default function DashboardClient({
   hasProfile,
   onboardingAnswers,
   initialManualDeadlines,
+  viewedCountries,
 }: {
   userId: string;
   userEmail: string;
   hasProfile: boolean;
   onboardingAnswers: OnboardingAnswers;
   initialManualDeadlines: ManualDeadline[];
+  viewedCountries: ViewedCountry[];
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -1292,6 +1299,24 @@ export default function DashboardClient({
                 <Globe className="h-4 w-4 shrink-0" />
                 <span>Countries</span>
               </Link>
+            ) : null}
+            {subscriptionTier !== "none" && viewedCountries.length > 0 ? (
+              <section className="mt-3 rounded-lg border border-white/12 bg-[#0d0d0d] p-3">
+                <p className="mb-2 text-[11px] uppercase tracking-[0.16em] text-white/45">
+                  Your Countries
+                </p>
+                <div className="space-y-1.5">
+                  {viewedCountries.map((country) => (
+                    <Link
+                      key={`${country.slug}-${country.countryName}`}
+                      href={`/countries/${country.slug}`}
+                      className="block rounded px-1.5 py-1 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                    >
+                      {countryFlag(country.countryName)} {country.countryName}
+                    </Link>
+                  ))}
+                </div>
+              </section>
             ) : null}
 
             <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
