@@ -70,6 +70,16 @@ async function markDocumentAsError(documentId: string) {
     .eq("id", documentId);
 }
 
+function cleanClaudeJsonOutput(rawText: string) {
+  const trimmed = rawText.trim();
+  if (!trimmed.startsWith("```")) return trimmed;
+
+  return trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+}
+
 export async function POST(request: Request) {
   let documentId: string | null = null;
 
@@ -93,7 +103,6 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (documentError || !document) {
-      await markDocumentAsError(documentId);
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
@@ -130,67 +139,67 @@ export async function POST(request: Request) {
           },
         };
 
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "pdfs-2024-09-25",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system: EXTRACTION_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              attachmentBlock,
-              {
-                type: "text",
-                text: "Extract all important dates and deadlines from this document.",
-              },
-            ],
-          },
-        ],
-      }),
-    });
+    let claudePayload: ClaudeResponse | null = null;
+    try {
+      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "pdfs-2024-09-25",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 2048,
+          system: EXTRACTION_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: [
+                attachmentBlock,
+                {
+                  type: "text",
+                  text: "Extract all important dates and deadlines from this document.",
+                },
+              ],
+            },
+          ],
+        }),
+      });
 
-    if (!claudeResponse.ok) {
+      if (claudeResponse.ok) {
+        claudePayload = (await claudeResponse.json()) as ClaudeResponse;
+      }
+    } catch {
       await markDocumentAsError(documentId);
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const claudePayload = (await claudeResponse.json()) as ClaudeResponse;
-    const textOutput = (claudePayload.content ?? [])
+    const textOutput = (claudePayload?.content ?? [])
       .filter((block) => block.type === "text" && typeof block.text === "string")
       .map((block) => block.text ?? "")
-      .join("")
-      .trim();
+      .join("");
+    const cleanedJson = cleanClaudeJsonOutput(textOutput);
 
+    let extractedDates: ExtractedDate[] = [];
     try {
-      const parsedJson = JSON.parse(textOutput) as unknown;
-      const extractedDates = Array.isArray(parsedJson)
-        ? parsedJson.filter(isExtractedDate)
-        : [];
-
-      await adminSupabase
-        .from("documents")
-        .update({
-          extracted_dates: extractedDates,
-          processing_status: "complete",
-        })
-        .eq("id", documentId);
+      const parsedJson = JSON.parse(cleanedJson) as unknown;
+      extractedDates = Array.isArray(parsedJson) ? parsedJson.filter(isExtractedDate) : [];
     } catch {
-      await markDocumentAsError(documentId);
+      extractedDates = [];
     }
+
+    await adminSupabase
+      .from("documents")
+      .update({
+        extracted_dates: extractedDates,
+        processing_status: "complete",
+      })
+      .eq("id", documentId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch {
-    if (documentId) {
-      await markDocumentAsError(documentId);
-    }
     return NextResponse.json({ success: true }, { status: 200 });
   }
 }

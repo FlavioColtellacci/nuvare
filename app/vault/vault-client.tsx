@@ -95,39 +95,6 @@ function isPdf(fileType: string | null) {
   return fileType === "application/pdf";
 }
 
-function statusBadge(document: VaultDocument) {
-  if (document.processing_status === "pending") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/[0.08] px-2.5 py-1 text-xs text-white/75">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Processing...
-      </span>
-    );
-  }
-
-  if (document.processing_status === "error") {
-    return (
-      <span className="inline-flex rounded-full border border-red-400/25 bg-red-500/15 px-2.5 py-1 text-xs text-red-200">
-        Error
-      </span>
-    );
-  }
-
-  if (document.extracted_dates.length > 0) {
-    return (
-      <span className="inline-flex rounded-full border border-emerald-400/25 bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200">
-        Dates extracted
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-xs text-white/60">
-      No dates found
-    </span>
-  );
-}
-
 export default function VaultClient({ userId }: { userId: string }) {
   const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -377,7 +344,7 @@ export default function VaultClient({ userId }: { userId: string }) {
         prev.map((doc) => (doc.id === temporaryId ? normalizedDocument : doc)),
       );
       startPolling(normalizedDocument.id);
-      setSuccessMessage("Document uploaded. Processing started.");
+      setSuccessMessage("Document uploaded securely.");
     } catch (error) {
       setDocuments((prev) => prev.filter((doc) => doc.id !== temporaryId));
       setErrorMessage(error instanceof Error ? error.message : "Upload failed.");
@@ -498,8 +465,7 @@ export default function VaultClient({ userId }: { userId: string }) {
             <div className="grid gap-4 md:grid-cols-2">
               {documents.map((document) => {
                 const isExpanded = expandedByDocumentId[document.id] ?? false;
-                const hasExtractedDates =
-                  document.processing_status === "complete" && document.extracted_dates.length > 0;
+                const hasExtractedDates = document.extracted_dates.length > 0;
 
                 return (
                   <article
@@ -528,7 +494,10 @@ export default function VaultClient({ userId }: { userId: string }) {
                         <p className="mt-1 text-xs text-white/50">
                           Uploaded {formatUploadDate(document.created_at)}
                         </p>
-                        <div className="mt-3">{statusBadge(document)}</div>
+                        <div className="mt-3 inline-flex items-center gap-2 text-xs text-emerald-200">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden="true" />
+                          Uploaded securely
+                        </div>
                       </div>
                     </div>
 
