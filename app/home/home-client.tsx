@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Shield } from "lucide-react";
+import { Globe, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1288,6 +1288,15 @@ export default function DashboardClient({
               <Shield className="h-4 w-4 shrink-0" />
               <span>Document Vault</span>
             </Link>
+            {subscriptionTier !== "none" ? (
+              <Link
+                href="/countries"
+                className="mt-3 inline-flex h-10 w-full cursor-pointer items-center gap-2.5 rounded-lg border border-white/20 bg-[#101010] px-3 text-sm text-white transition-colors hover:bg-white/10"
+              >
+                <Globe className="h-4 w-4 shrink-0" />
+                <span>Countries</span>
+              </Link>
+            ) : null}
 
             <div className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
               <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/45">
