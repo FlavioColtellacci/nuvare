@@ -604,6 +604,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                 const isExpanded = expandedByDocumentId[document.id] ?? false;
                 const hasExtractedDates = document.extracted_dates.length > 0;
                 const isPreviewLoading = previewLoadingByDocumentId[document.id] === true;
+                const isTemporaryDocument = document.id.startsWith("temp-");
 
                 return (
                   <article
@@ -614,8 +615,16 @@ export default function VaultClient({ userId }: { userId: string }) {
                       <button
                         type="button"
                         onClick={() => void handlePreviewDocument(document.id)}
-                        disabled={isPreviewLoading}
-                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={isPreviewLoading || isTemporaryDocument}
+                        className={cn(
+                          "inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors",
+                          isTemporaryDocument
+                            ? "cursor-not-allowed opacity-40"
+                            : "cursor-pointer hover:border-white/30 hover:text-white",
+                          isPreviewLoading && !isTemporaryDocument
+                            ? "cursor-not-allowed opacity-70"
+                            : "",
+                        )}
                         aria-label={`Preview ${document.file_name}`}
                       >
                         {isPreviewLoading ? (
@@ -627,7 +636,13 @@ export default function VaultClient({ userId }: { userId: string }) {
                       <button
                         type="button"
                         onClick={() => requestDeleteDocument(document.id, document.file_name)}
-                        className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors hover:border-white/30 hover:text-white"
+                        disabled={isTemporaryDocument}
+                        className={cn(
+                          "inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/15 bg-[#121212] text-white/70 transition-colors",
+                          isTemporaryDocument
+                            ? "cursor-not-allowed opacity-40"
+                            : "cursor-pointer hover:border-white/30 hover:text-white",
+                        )}
                         aria-label={`Delete ${document.file_name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -726,10 +741,10 @@ export default function VaultClient({ userId }: { userId: string }) {
           <button
             type="button"
             onClick={() => setPreviewDocument(null)}
-            className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-md border border-white/20 bg-black/60 text-white/80 transition-colors hover:text-white"
+            className="absolute right-4 top-4 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-md border border-white/20 bg-black/60 text-white/80 transition-colors hover:text-white"
             aria-label="Close preview"
           >
-            <X className="h-4 w-4" />
+            <X className="pointer-events-none h-4 w-4" />
           </button>
 
           <div
