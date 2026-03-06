@@ -79,12 +79,9 @@ export default function Home() {
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
-            <img
-              src="/landing_page_header.png"
-              alt="Nuvare"
-              height={28}
-              className="h-7 w-auto object-contain"
-            />
+            <span className="font-editorial text-xl tracking-[0.25em] text-white">
+              NUVARE
+            </span>
             <AnimatePresence>
               {sparkles.map((sparkle) => (
                 <motion.span
