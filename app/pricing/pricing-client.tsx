@@ -69,19 +69,19 @@ export default function PricingClient({
   }
 
   return (
-    <main className="min-h-screen bg-black px-6 py-16 text-white">
+    <main className="min-h-screen overflow-x-hidden bg-black px-4 py-16 text-white sm:px-6 md:px-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
         <h1 className="text-center font-editorial text-5xl text-white md:text-6xl">
           Simple, transparent pricing.
         </h1>
         <p className="mt-4 text-center text-sm text-white/55">No hidden fees. Cancel anytime.</p>
 
-        <div className="mt-8 inline-flex rounded-full border border-white/20 bg-[#0d0d0d] p-1">
+        <div className="mt-8 flex w-full max-w-md rounded-full border border-white/20 bg-[#0d0d0d] p-1">
           <button
             type="button"
             onClick={() => setBillingInterval("monthly")}
             className={cn(
-              "cursor-pointer rounded-full px-5 py-2 text-sm transition-colors",
+              "flex-1 cursor-pointer rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
               billingInterval === "monthly" ? "bg-white text-black" : "text-white/70 hover:text-white",
             )}
           >
@@ -91,12 +91,12 @@ export default function PricingClient({
             type="button"
             onClick={() => setBillingInterval("yearly")}
             className={cn(
-              "inline-flex cursor-pointer items-center gap-2 rounded-full px-5 py-2 text-sm transition-colors",
+              "inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
               billingInterval === "yearly" ? "bg-white text-black" : "text-white/70 hover:text-white",
             )}
           >
             <span>Yearly</span>
-            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white">
               Save 17%
             </span>
           </button>

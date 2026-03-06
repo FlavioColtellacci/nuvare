@@ -51,10 +51,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-black text-white">
-      <div className="flex flex-1 items-center justify-center px-6 py-10">
-        <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-white/12 bg-[#0b0b0b] p-8 text-center">
-          <span className="font-light text-lg tracking-[0.3em] text-white">NUVARE</span>
+    <main className="flex min-h-screen flex-col overflow-x-hidden bg-black text-white">
+      <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6">
+        <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-white/12 bg-[#0b0b0b] p-6 text-center sm:p-8">
+          <span className="font-light text-base tracking-[0.3em] text-white sm:text-lg">NUVARE</span>
 
           <div className="mt-6 w-full space-y-3">
             <button
@@ -148,7 +148,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="px-4 pb-6 sm:px-6">
         <Disclaimer />
       </div>
     </main>
