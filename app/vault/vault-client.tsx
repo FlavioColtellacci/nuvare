@@ -597,7 +597,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                 return (
                   <article
                     key={document.id}
-                    className="relative cursor-pointer rounded-xl border border-white/10 bg-white/5 p-4"
+                    className="relative cursor-pointer rounded-xl bg-white/[0.04] p-4 border-b border-white/[0.06]"
                   >
                     <div className="absolute right-3 top-3 inline-flex items-center gap-2">
                       <button
@@ -645,7 +645,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                           <FileImage className="h-4 w-4" />
                         )}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 overflow-hidden">
                         <p
                           className="truncate overflow-hidden text-sm text-white"
                           title={document.file_name}
