@@ -1,16 +1,8 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import DashboardClient, { type ManualDeadline } from "@/app/home/home-client";
+import DashboardClient, { type DashboardDeadline } from "@/app/home/home-client";
 import { createClient } from "@/lib/supabase/server";
-
-type OnboardingAnswers = {
-  citizenships?: string[];
-  permitsByCountry?: Record<string, string[]>;
-  abroadAssets?: string[];
-  manualDeadlines?: ManualDeadline[];
-  [key: string]: unknown;
-};
 
 type ViewedCountry = {
   slug: string;
@@ -37,11 +29,17 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const onboardingAnswers =
-    (profile?.onboarding_answers as OnboardingAnswers | null) ?? {};
-  const manualDeadlines = Array.isArray(onboardingAnswers.manualDeadlines)
-    ? onboardingAnswers.manualDeadlines
-    : [];
+  const { data: deadlinesData } = await supabase
+    .from("deadlines")
+    .select("id, title, due_date, category")
+    .eq("user_id", user.id)
+    .order("due_date", { ascending: true });
+  const initialDeadlines: DashboardDeadline[] = (deadlinesData ?? []).map((deadline) => ({
+    id: deadline.id as string,
+    title: deadline.title as string,
+    dueDate: deadline.due_date as string,
+    category: (deadline.category as string | null) ?? "",
+  }));
   const { data: viewedCountriesData } = await supabase
     .from("user_countries")
     .select("slug, country_name")
@@ -58,8 +56,7 @@ export default async function HomePage() {
       userId={user.id}
       userEmail={user.email ?? "Signed-in user"}
       hasProfile={Boolean(profile)}
-      onboardingAnswers={onboardingAnswers}
-      initialManualDeadlines={manualDeadlines}
+      initialDeadlines={initialDeadlines}
       viewedCountries={viewedCountries}
     />
   );

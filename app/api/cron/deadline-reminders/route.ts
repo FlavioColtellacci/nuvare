@@ -9,6 +9,7 @@ import { Resend } from "resend";
 export const runtime = "nodejs";
 
 type DeadlineRow = {
+  id: string;
   user_id: string;
   title: string;
   due_date: string;
@@ -137,7 +138,7 @@ export async function GET(request: Request) {
 
     const { data: deadlinesData, error: deadlinesError } = await supabaseAdmin
       .from("deadlines")
-      .select("user_id,title,due_date")
+      .select("id,user_id,title,due_date")
       .gte("due_date", minDate)
       .lte("due_date", maxDate);
 

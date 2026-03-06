@@ -20,29 +20,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-export type ManualDeadline = {
+export type DashboardDeadline = {
   id: string;
   title: string;
-  country: string;
   dueDate: string;
-  notes?: string;
-};
-
-type Deadline = {
-  id: string;
-  title: string;
-  country: string;
-  dueDate: string;
-  notes?: string;
-  source: "generated" | "manual";
-};
-
-type OnboardingAnswers = {
-  citizenships?: string[];
-  permitsByCountry?: Record<string, string[]>;
-  abroadAssets?: string[];
-  manualDeadlines?: ManualDeadline[];
-  [key: string]: unknown;
+  category: string;
 };
 
 type ChatRole = "user" | "assistant";
@@ -128,18 +110,6 @@ function daysRemaining(dueDate: string) {
   return Math.round((due.getTime() - today.getTime()) / 86400000);
 }
 
-function nextOccurrence(month: number, day: number) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const first = new Date(year, month - 1, day);
-  first.setHours(0, 0, 0, 0);
-  if (first >= now) return first.toISOString();
-
-  const next = new Date(year + 1, month - 1, day);
-  next.setHours(0, 0, 0, 0);
-  return next.toISOString();
-}
-
 function getUrgencyColor(days: number) {
   if (days <= 30) {
     return "bg-red-500/20 text-red-300 border border-red-400/30";
@@ -172,13 +142,6 @@ function countryFlag(country: string) {
   };
 
   return flags[country] ?? "🌍";
-}
-
-function normalizeCountry(value: string) {
-  if (value === "UAE") return "United Arab Emirates";
-  if (value === "UK") return "United Kingdom";
-  if (value === "US") return "United States";
-  return value;
 }
 
 function hasKeyword(text: string, keyword: string) {
@@ -316,95 +279,17 @@ function extractSourceItems(sourcesContent: string) {
   return lines;
 }
 
-function generateDeadlinesFromAnswers(answers: OnboardingAnswers): Deadline[] {
-  const results: Deadline[] = [];
-  const citizenships = answers.citizenships ?? [];
-  const permitsByCountry = answers.permitsByCountry ?? {};
-  const abroadAssets = answers.abroadAssets ?? [];
-
-  if (citizenships.includes("United Kingdom")) {
-    results.push({
-      id: "uk-self-assessment",
-      title: "UK Self Assessment Tax Return",
-      country: "United Kingdom",
-      dueDate: nextOccurrence(1, 31),
-      source: "generated",
-    });
-  }
-
-  if (citizenships.includes("United States")) {
-    results.push({
-      id: "us-fbar",
-      title: "FBAR Filing Deadline",
-      country: "United States",
-      dueDate: nextOccurrence(4, 15),
-      source: "generated",
-    });
-  }
-
-  if (citizenships.includes("Australia")) {
-    results.push({
-      id: "au-tax-return",
-      title: "Australian Tax Return",
-      country: "Australia",
-      dueDate: nextOccurrence(10, 31),
-      source: "generated",
-    });
-  }
-
-  const hasForeignAccounts =
-    abroadAssets.includes("Bank accounts") ||
-    abroadAssets.includes("Brokerage accounts");
-  if (hasForeignAccounts) {
-    results.push({
-      id: "fatca-8938",
-      title: "FATCA Form 8938",
-      country: "United States",
-      dueDate: nextOccurrence(4, 15),
-      source: "generated",
-    });
-  }
-
-  Object.keys(permitsByCountry).forEach((countryRaw) => {
-    const country = normalizeCountry(countryRaw);
-    const idBase = country.toLowerCase().replaceAll(" ", "-");
-
-    if (country === "United Arab Emirates") {
-      results.push({
-        id: `visa-${idBase}`,
-        title: "UAE Residence Visa Renewal",
-        country,
-        dueDate: nextOccurrence(12, 1),
-        source: "generated",
-      });
-      return;
-    }
-
-    results.push({
-      id: `permit-${idBase}`,
-      title: `${country} Residence Permit Review`,
-      country,
-      dueDate: nextOccurrence(12, 1),
-      source: "generated",
-    });
-  });
-
-  return results;
-}
-
 export default function DashboardClient({
   userId,
   userEmail,
   hasProfile,
-  onboardingAnswers,
-  initialManualDeadlines,
+  initialDeadlines,
   viewedCountries,
 }: {
   userId: string;
   userEmail: string;
   hasProfile: boolean;
-  onboardingAnswers: OnboardingAnswers;
-  initialManualDeadlines: ManualDeadline[];
+  initialDeadlines: DashboardDeadline[];
   viewedCountries: ViewedCountry[];
 }) {
   const router = useRouter();
@@ -451,30 +336,19 @@ export default function DashboardClient({
   const [copiedUserMessageId, setCopiedUserMessageId] = useState<string | null>(null);
   const [editingUserMessageId, setEditingUserMessageId] = useState<string | null>(null);
   const [editingUserMessageDraft, setEditingUserMessageDraft] = useState("");
-  const [manualDeadlines, setManualDeadlines] =
-    useState<ManualDeadline[]>(initialManualDeadlines);
+  const [deadlines, setDeadlines] = useState<DashboardDeadline[]>(initialDeadlines);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
-    country: "",
+    category: "",
     date: "",
-    notes: "",
   });
 
-  const generatedDeadlines = useMemo(
-    () => generateDeadlinesFromAnswers(onboardingAnswers),
-    [onboardingAnswers],
-  );
-
   const allDeadlines = useMemo(() => {
-    const manual = manualDeadlines.map((deadline) => ({
-      ...deadline,
-      source: "manual" as const,
-    }));
-    return [...generatedDeadlines, ...manual].sort(
+    return [...deadlines].sort(
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
-  }, [generatedDeadlines, manualDeadlines]);
+  }, [deadlines]);
   const subscriptionBannerMessage =
     subscriptionTier === "professional"
       ? "You're now on Nuvare Professional. Welcome."
@@ -1215,47 +1089,44 @@ export default function DashboardClient({
     setSelectedUploadFile(selectedFile);
   }
 
-  async function saveManualDeadlines(nextManualDeadlines: ManualDeadline[]) {
-    const nextAnswers = {
-      ...onboardingAnswers,
-      manualDeadlines: nextManualDeadlines,
-    };
-
-    const { error } = await supabase.from("user_profiles").upsert(
-      {
-        user_id: userId,
-        onboarding_answers: nextAnswers,
-      },
-      { onConflict: "user_id" },
-    );
-
-    if (error) {
-      throw new Error(error.message);
-    }
-  }
-
   async function handleAddDeadline() {
     setErrorMessage("");
-    if (!form.title || !form.country || !form.date) {
-      setErrorMessage("Please complete title, country, and date.");
+    if (!form.title || !form.category || !form.date) {
+      setErrorMessage("Please complete title, category, and date.");
       return;
     }
 
     setIsSavingManual(true);
 
     try {
-      const newDeadline: ManualDeadline = {
-        id: crypto.randomUUID(),
-        title: form.title.trim(),
-        country: form.country.trim(),
-        dueDate: form.date,
-        notes: form.notes.trim(),
+      const { data, error } = await supabase
+        .from("deadlines")
+        .insert({
+          user_id: userId,
+          title: form.title.trim(),
+          due_date: form.date,
+          category: form.category.trim(),
+        })
+        .select("id, title, due_date, category")
+        .single();
+
+      if (error || !data) {
+        throw new Error(error?.message ?? "Unable to save deadline.");
+      }
+
+      const newDeadline: DashboardDeadline = {
+        id: data.id as string,
+        title: data.title as string,
+        dueDate: data.due_date as string,
+        category: (data.category as string | null) ?? "",
       };
 
-      const nextManualDeadlines = [...manualDeadlines, newDeadline];
-      await saveManualDeadlines(nextManualDeadlines);
-      setManualDeadlines(nextManualDeadlines);
-      setForm({ title: "", country: "", date: "", notes: "" });
+      setDeadlines((prev) =>
+        [...prev, newDeadline].sort(
+          (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        ),
+      );
+      setForm({ title: "", category: "", date: "" });
       setIsModalOpen(false);
     } catch (error) {
       setErrorMessage(
@@ -1458,7 +1329,7 @@ export default function DashboardClient({
                         className="rounded-lg border border-white/12 bg-[#111111] p-3"
                       >
                         <p className="text-xs text-white/90">
-                          {countryFlag(deadline.country)} {deadline.title}
+                          {deadline.title}
                         </p>
                         <div className="mt-2 flex items-center justify-between gap-2">
                           <p className="text-[11px] text-white/50">{formatDate(deadline.dueDate)}</p>
@@ -1938,11 +1809,11 @@ export default function DashboardClient({
                   placeholder="Title"
                 />
                 <Input
-                  value={form.country}
+                  value={form.category}
                   onChange={(event) =>
-                    setForm((prev) => ({ ...prev, country: event.target.value }))
+                    setForm((prev) => ({ ...prev, category: event.target.value }))
                   }
-                  placeholder="Country"
+                  placeholder="Category"
                 />
                 <Input
                   type="date"
@@ -1950,14 +1821,6 @@ export default function DashboardClient({
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, date: event.target.value }))
                   }
-                />
-                <Textarea
-                  value={form.notes}
-                  onChange={(event) =>
-                    setForm((prev) => ({ ...prev, notes: event.target.value }))
-                  }
-                  placeholder="Notes"
-                  className="min-h-24"
                 />
               </div>
 

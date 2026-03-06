@@ -8,19 +8,6 @@ type ExtractedDate = {
   notes: string;
 };
 
-type ManualDeadline = {
-  id: string;
-  title: string;
-  country: string;
-  dueDate: string;
-  notes?: string;
-};
-
-type OnboardingAnswers = {
-  manualDeadlines?: ManualDeadline[];
-  [key: string]: unknown;
-};
-
 type AddDeadlinesPayload = {
   documentId?: string;
 };
@@ -34,20 +21,6 @@ function isExtractedDate(value: unknown): value is ExtractedDate {
     /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) &&
     typeof candidate.notes === "string"
   );
-}
-
-function normalizeManualDeadlines(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item): item is ManualDeadline => {
-    if (!item || typeof item !== "object") return false;
-    const candidate = item as Record<string, unknown>;
-    return (
-      typeof candidate.id === "string" &&
-      typeof candidate.title === "string" &&
-      typeof candidate.country === "string" &&
-      typeof candidate.dueDate === "string"
-    );
-  });
 }
 
 export async function POST(request: Request) {
@@ -84,46 +57,24 @@ export async function POST(request: Request) {
     const extractedDatesRaw = Array.isArray(document.extracted_dates) ? document.extracted_dates : [];
     const extractedDates = extractedDatesRaw.filter(isExtractedDate);
 
-    const { data: profile, error: profileError } = await supabase
-      .from("user_profiles")
-      .select("onboarding_answers")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      return NextResponse.json({ error: profileError.message }, { status: 500 });
-    }
-
-    const existingAnswers = (profile?.onboarding_answers as OnboardingAnswers | null) ?? {};
-    const existingManualDeadlines = normalizeManualDeadlines(existingAnswers.manualDeadlines);
-
-    const newManualDeadlines: ManualDeadline[] = extractedDates.map((extracted) => ({
-      id: crypto.randomUUID(),
+    const deadlineRows = extractedDates.map((extracted) => ({
+      user_id: user.id,
       title: extracted.label,
-      country: "",
-      dueDate: extracted.date,
-      notes: extracted.notes,
+      due_date: extracted.date,
+      category: "Document",
     }));
 
-    const updatedManualDeadlines = [...existingManualDeadlines, ...newManualDeadlines];
-    const nextOnboardingAnswers: OnboardingAnswers = {
-      ...existingAnswers,
-      manualDeadlines: updatedManualDeadlines,
-    };
-
-    const { error: upsertError } = await supabase.from("user_profiles").upsert(
-      {
-        user_id: user.id,
-        onboarding_answers: nextOnboardingAnswers,
-      },
-      { onConflict: "user_id" },
-    );
-
-    if (upsertError) {
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    if (deadlineRows.length === 0) {
+      return NextResponse.json({ success: true, added: 0 });
     }
 
-    return NextResponse.json({ success: true, added: newManualDeadlines.length });
+    const { error: insertError } = await supabase.from("deadlines").insert(deadlineRows);
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, added: deadlineRows.length });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to add deadlines." },
