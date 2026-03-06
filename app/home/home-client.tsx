@@ -1260,7 +1260,9 @@ export default function DashboardClient({
                 />
               </svg>
             </button>
-            <span className="font-light text-sm tracking-[0.3em] text-white">NUVARE</span>
+            <span className="hidden font-light text-sm tracking-[0.3em] text-white md:block">
+              NUVARE
+            </span>
             <Button
               onClick={() => {
                 handleNewChat();
@@ -1550,18 +1552,25 @@ export default function DashboardClient({
           </div>
         </aside>
 
-        <div className="ml-0 md:ml-[260px] flex min-h-screen flex-col">
-          <button
-            className="md:hidden fixed top-4 left-4 z-50 border-0 p-2 text-white/60 shadow-none outline-none ring-0 hover:text-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-            onClick={() => setIsSidebarOpen(true)}
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-              <rect y="3" width="20" height="2" rx="1" />
-              <rect y="9" width="20" height="2" rx="1" />
-              <rect y="15" width="20" height="2" rx="1" />
-            </svg>
-          </button>
-          <section className="flex h-screen flex-col px-6 py-6 md:px-10">
+        <div className="ml-0 flex min-h-screen flex-col md:ml-[260px]">
+          {!isSidebarOpen ? (
+            <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-center md:hidden">
+              <button
+                type="button"
+                className="absolute left-4 top-1/2 -translate-y-1/2 border-0 p-2 text-white/60 shadow-none outline-none ring-0 hover:text-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                onClick={() => setIsSidebarOpen(true)}
+                aria-label="Open sidebar"
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <rect y="3" width="20" height="2" rx="1" />
+                  <rect y="9" width="20" height="2" rx="1" />
+                  <rect y="15" width="20" height="2" rx="1" />
+                </svg>
+              </button>
+              <span className="font-light text-sm tracking-[0.3em] text-white">NUVARE</span>
+            </header>
+          ) : null}
+          <section className="flex h-screen flex-col px-6 pb-6 pt-16 md:px-10 md:py-6">
             {!hasProfile ? (
               <p className="mb-4 text-sm text-amber-300">
                 Your profile is incomplete. Answers may be less personalized until onboarding is
