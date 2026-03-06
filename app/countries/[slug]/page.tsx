@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
 import Disclaimer from "@/components/Disclaimer";
 import { getCountryGuide } from "@/lib/getCountryGuide";
 
@@ -24,7 +23,11 @@ function formatLastUpdated(updatedAt: string) {
   }).format(new Date(updatedAt));
 }
 
-export default async function CountryGuidePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CountryGuidePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
 
   const cookieStore = await cookies();
@@ -46,13 +49,11 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
       },
     },
   );
+
   const {
     data: { session },
   } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect("/login");
-  }
+  if (!session) redirect("/login");
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -61,11 +62,9 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
     .maybeSingle();
 
   const hasActiveSubscription =
-    profile?.subscription_tier === "core" || profile?.subscription_tier === "professional";
-
-  if (!hasActiveSubscription) {
-    redirect("/pricing");
-  }
+    profile?.subscription_tier === "core" ||
+    profile?.subscription_tier === "professional";
+  if (!hasActiveSubscription) redirect("/pricing");
 
   let guideData: Awaited<ReturnType<typeof getCountryGuide>> | undefined;
   let guideError = false;
@@ -97,7 +96,9 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
             ← Back
           </Link>
           <div className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
-            <p className="text-sm text-white/70">Unable to load guide. Please try again shortly.</p>
+            <p className="text-sm text-white/70">
+              Unable to load guide. Please try again shortly.
+            </p>
           </div>
         </div>
       </main>
@@ -120,7 +121,9 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
         <p className="mt-3 text-sm text-white/55">
           Live regulatory intelligence · Updated every 24 hours
         </p>
-        <p className="mt-2 text-xs text-white/45">Last updated: {formatLastUpdated(updatedAt)}</p>
+        <p className="mt-2 text-xs text-white/45">
+          Last updated: {formatLastUpdated(updatedAt)}
+        </p>
         <article className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -149,7 +152,9 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
                   {children}
                 </ol>
               ),
-              li: ({ children }: ComponentPropsWithoutRef<"li">) => <li>{children}</li>,
+              li: ({ children }: ComponentPropsWithoutRef<"li">) => (
+                <li>{children}</li>
+              ),
               strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
                 <strong className="font-semibold text-white">{children}</strong>
               ),
