@@ -1249,12 +1249,13 @@ export default function DashboardClient({
               <button
                 type="button"
                 onClick={() => setIsNotificationsOpen((current) => !current)}
-                className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-[#101010] text-white transition-colors hover:bg-white/10"
+                className="relative inline-flex h-10 w-full items-center gap-2.5 rounded-lg border border-white/20 bg-[#101010] px-3 text-sm text-white transition-colors hover:bg-white/10"
                 aria-label="Notifications"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4 shrink-0" />
+                <span>Notifications</span>
                 {unreadCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex h-2 w-2 items-center justify-center rounded-full bg-red-500 text-[8px] leading-none text-white">
+                  <span className="absolute left-5 top-2 inline-flex h-2 w-2 items-center justify-center rounded-full bg-red-500 text-[8px] leading-none text-white">
                     {unreadCount >= 10 ? "9+" : unreadCount}
                   </span>
                 ) : null}
