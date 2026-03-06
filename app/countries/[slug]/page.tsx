@@ -26,6 +26,7 @@ function formatLastUpdated(updatedAt: string) {
 
 export default async function CountryGuidePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,28 +72,39 @@ export default async function CountryGuidePage({ params }: { params: Promise<{ s
 
   try {
     guideData = await getCountryGuide(slug);
+    await supabase.from("user_countries").upsert(
+      {
+        user_id: session.user.id,
+        slug,
+        country_name: guideData.countryName,
+        last_viewed: new Date().toISOString(),
+      },
+      { onConflict: "user_id,slug" },
+    );
   } catch {
     guideError = true;
   }
 
   if (guideError || !guideData) {
-    return <div>Unable to load guide. Please try again shortly.</div>;
+    return (
+      <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
+        <div className="onboarding-glow pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto w-full max-w-4xl">
+          <Link
+            href="/countries"
+            className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
+          >
+            ← Back
+          </Link>
+          <div className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
+            <p className="text-sm text-white/70">Unable to load guide. Please try again shortly.</p>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const { content, updatedAt, countryName } = guideData;
-  const { error: viewedCountryError } = await supabase.from("user_countries").upsert(
-    {
-      user_id: session.user.id,
-      slug,
-      country_name: countryName,
-      last_viewed: new Date().toISOString(),
-    },
-    { onConflict: "user_id,slug" },
-  );
-
-  if (viewedCountryError) {
-    console.error("Failed to track viewed country", viewedCountryError);
-  }
 
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
