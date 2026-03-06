@@ -218,6 +218,27 @@ export async function GET(request: Request) {
           errors += 1;
         } else {
           sent += 1;
+          for (const deadline of qualifyingDeadlines) {
+            const daysUntil = getDaysUntil(deadline.due_date, todayUtc);
+            if (daysUntil === null) {
+              continue;
+            }
+
+            const deadlineTitle = deadline.title;
+            const dueDate = deadline.due_date;
+
+            const { error: notificationError } = await supabaseAdmin.from('notifications').insert({
+              user_id: userId,
+              title: `Deadline in ${daysUntil} days`,
+              body: `${deadlineTitle} is due on ${dueDate}`,
+              type: 'deadline_reminder',
+              read: false,
+            });
+
+            if (notificationError) {
+              console.error('Notification insert error:', notificationError);
+            }
+          }
         }
       } catch (emailError) {
         console.error('Email send error:', emailError)
