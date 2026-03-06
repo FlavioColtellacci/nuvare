@@ -80,7 +80,7 @@ export default function Home() {
             onMouseMove={createSparkle}
           >
             <img
-              src="/nuvare-header.png"
+              src="/landing_page_header.png"
               alt="Nuvare"
               height={28}
               className="h-7 w-auto object-contain"
