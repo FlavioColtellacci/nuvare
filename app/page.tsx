@@ -5,7 +5,6 @@ import type { MouseEvent } from "react";
 import { MeshGradient } from "@paper-design/shaders-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Disclaimer from "@/components/Disclaimer";
 
@@ -80,12 +79,11 @@ export default function Home() {
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
-            <Image
+            <img
               src="/nuvare-header.png"
               alt="Nuvare"
               height={28}
-              width={140}
-              className="object-contain"
+              className="h-7 w-auto object-contain"
             />
             <AnimatePresence>
               {sparkles.map((sparkle) => (
