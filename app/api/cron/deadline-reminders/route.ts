@@ -93,36 +93,43 @@ async function listAllAuthUsers(
 }
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  if (!cronSecret) {
-    return NextResponse.json({ error: "Missing CRON_SECRET." }, { status: 500 });
-  }
-  if (authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const resendApiKey = process.env.RESEND_API_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
-    return NextResponse.json(
-      { error: "Missing one or more required environment variables." },
-      { status: 500 },
-    );
-  }
-
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const resend = new Resend(resendApiKey);
-
-  let sent = 0;
-  let errors = 0;
-
   try {
+    console.log('Cron started')
+    console.log('ENV check:', {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasResendKey: !!process.env.RESEND_API_KEY,
+    })
+
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get("authorization");
+
+    if (!cronSecret) {
+      return NextResponse.json({ error: "Missing CRON_SECRET." }, { status: 500 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey || !resendApiKey) {
+      return NextResponse.json(
+        { error: "Missing one or more required environment variables." },
+        { status: 500 },
+      );
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const resend = new Resend(resendApiKey);
+
+    let sent = 0;
+    let errors = 0;
+
     const todayUtc = startOfUtcDay(new Date());
     const endUtc = new Date(todayUtc.getTime() + 90 * DAY_IN_MS);
     const minDate = toIsoDate(todayUtc);
@@ -200,7 +207,7 @@ export async function GET(request: Request) {
 </html>`
 
         const { error: sendError } = await resend.emails.send({
-          from: "Nuvare <reminders@nuvare.vercel.app>",
+          from: "Nuvare <onboarding@resend.dev>",
           to: recipientEmail,
           subject: "Upcoming deadline reminder from Nuvare",
           html: html,
@@ -211,13 +218,19 @@ export async function GET(request: Request) {
         } else {
           sent += 1;
         }
-      } catch {
-        errors += 1;
+      } catch (emailError) {
+        console.error('Email send error:', emailError)
+        errors++
       }
     }
 
     return NextResponse.json({ sent, errors });
-  } catch {
-    return NextResponse.json({ sent, errors: errors + 1 }, { status: 500 });
+  } catch (error) {
+    console.error('Cron error:', error)
+    return NextResponse.json({ 
+      error: true, 
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 })
   }
 }
