@@ -597,7 +597,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                 return (
                   <article
                     key={document.id}
-                    className="relative cursor-pointer rounded-xl bg-white/[0.04] p-4 border-b border-white/[0.06]"
+                    className="relative cursor-pointer rounded-xl bg-white/[0.03] p-4"
                   >
                     <div className="absolute right-3 top-3 inline-flex items-center gap-2">
                       <button
