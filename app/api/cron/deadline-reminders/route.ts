@@ -2,13 +2,9 @@
 // e.g. generate one at: https://generate-secret.vercel.app/32
 // Also add RESEND_API_KEY if not already present.
 import { NextResponse } from "next/server";
-import React from "react";
-import { render } from "@react-email/render";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { Resend } from "resend";
-
-import { DeadlineReminderEmail } from "@/lib/emails/DeadlineReminderEmail";
 
 export const runtime = "nodejs";
 
@@ -175,18 +171,39 @@ export async function GET(request: Request) {
       }
 
       try {
-        const html = await render(
-          React.createElement(DeadlineReminderEmail, {
-            userName: recipientEmail.split("@")[0] ?? "there",
-            deadlines: qualifyingDeadlines,
-          }),
-        );
+        const urgencyColor = (urgency: string) =>
+          urgency === 'urgent' ? '#ef4444' : urgency === 'upcoming' ? '#f59e0b' : '#22c55e'
+
+        const deadlineRows = qualifyingDeadlines.map((d: { title: string; due_date: string; urgency: string }) => `
+  <tr>
+    <td style="padding:12px 0;border-bottom:1px solid #f0f0f0">
+      <strong style="display:block;color:#111">${d.title}</strong>
+      <span style="color:#666;font-size:14px">${new Date(d.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+      <span style="margin-left:8px;padding:2px 8px;border-radius:9999px;font-size:12px;background:${urgencyColor(d.urgency)}22;color:${urgencyColor(d.urgency)}">${d.urgency}</span>
+    </td>
+  </tr>
+`).join('')
+
+        const html = `
+<!DOCTYPE html>
+<html>
+<body style="font-family:sans-serif;background:#f9f9f9;margin:0;padding:40px 0">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:40px">
+    <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#111;margin:0 0 32px">NUVARE</p>
+    <h1 style="font-size:22px;color:#111;margin:0 0 8px">You have ${qualifyingDeadlines.length} upcoming deadline${qualifyingDeadlines.length === 1 ? '' : 's'}</h1>
+    <p style="color:#666;margin:0 0 32px">Here's what needs your attention</p>
+    <table style="width:100%;border-collapse:collapse">${deadlineRows}</table>
+    <a href="https://nuvare.vercel.app/dashboard" style="display:inline-block;margin-top:32px;padding:12px 24px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">View Your Deadlines</a>
+    <p style="margin-top:40px;font-size:12px;color:#999">Nuvare · This is informational only, not legal or financial advice.</p>
+  </div>
+</body>
+</html>`
 
         const { error: sendError } = await resend.emails.send({
           from: "Nuvare <reminders@nuvare.vercel.app>",
           to: recipientEmail,
           subject: "Upcoming deadline reminder from Nuvare",
-          html,
+          html: html,
         });
 
         if (sendError) {
