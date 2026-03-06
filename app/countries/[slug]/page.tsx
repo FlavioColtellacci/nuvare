@@ -86,7 +86,7 @@ export default async function CountryGuidePage({
 
   if (guideError || !guideData) {
     return (
-      <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
+      <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 pt-24 pb-10 text-white md:px-10">
         <div className="onboarding-glow pointer-events-none absolute inset-0" />
         <div className="absolute top-6 left-6 z-50">
           <BackButton />
@@ -105,7 +105,7 @@ export default async function CountryGuidePage({
   const { content, updatedAt, countryName } = guideData;
 
   return (
-    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
+    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 pt-24 pb-10 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="absolute top-6 left-6 z-50">
         <BackButton />

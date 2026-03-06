@@ -78,8 +78,8 @@ export default function FeaturesPage() {
         </div>
       </header>
 
-      <section className="relative z-20 flex-1">
-        <div className="absolute bottom-20 left-6 max-w-6xl pt-24 md:bottom-24 md:left-10">
+      <section className="relative z-20 flex-1 px-6 pb-20 pt-28 md:px-10">
+        <div className="max-w-6xl">
           <div className="space-y-1">
             <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
               Everything

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -21,13 +21,6 @@ export default function CountriesClient({ countries }: { countries: Country[] })
     <main className="onboarding-bg relative min-h-screen flex flex-col bg-black px-6 py-12 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-4xl flex-1">
-        <Link
-          href="/home"
-          className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back
-        </Link>
         <h1 className="font-editorial text-5xl text-white">Country Intelligence</h1>
         <p className="mt-3 text-sm text-white/55">Live regulatory guides for any country in the world.</p>
 
