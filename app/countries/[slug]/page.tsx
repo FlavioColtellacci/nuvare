@@ -88,8 +88,10 @@ export default async function CountryGuidePage({
     return (
       <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
         <div className="onboarding-glow pointer-events-none absolute inset-0" />
-        <div className="relative mx-auto w-full max-w-4xl">
+        <div className="absolute top-6 left-6 z-50">
           <BackButton />
+        </div>
+        <div className="relative mx-auto w-full max-w-4xl">
           <div className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
             <p className="text-sm text-white/70">
               Unable to load guide. Please try again shortly.
@@ -105,8 +107,10 @@ export default async function CountryGuidePage({
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
-      <div className="relative mx-auto w-full max-w-4xl">
+      <div className="absolute top-6 left-6 z-50">
         <BackButton />
+      </div>
+      <div className="relative mx-auto w-full max-w-4xl">
         <h1 className="font-editorial text-5xl text-white">{countryName}</h1>
         <p className="mt-3 text-sm text-white/55">
           Live regulatory intelligence · Updated every 24 hours
