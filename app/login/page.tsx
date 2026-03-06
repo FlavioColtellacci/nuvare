@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Disclaimer from "@/components/Disclaimer";
@@ -54,9 +55,13 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <div className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-white/12 bg-[#0b0b0b] p-8 text-center">
-          <p className="mb-8 text-center text-sm font-light tracking-[0.3em] text-white">
-            NUVARE
-          </p>
+          <Image
+            src="/nuvare-header.png"
+            alt="Nuvare"
+            height={24}
+            width={120}
+            className="object-contain mx-auto"
+          />
 
           <h1 className="text-center font-editorial text-2xl text-white">
             Sign in to Nuvare

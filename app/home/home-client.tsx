@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -1238,7 +1239,13 @@ export default function DashboardClient({
       <div className="relative min-h-screen">
         <aside className="fixed inset-y-0 left-0 z-20 w-[260px] border-r border-white/12 bg-[#070707]/95 backdrop-blur-sm">
           <div className="flex h-full flex-col p-4">
-            <p className="font-editorial text-xl tracking-[0.25em] text-[#d9d9d9]">NUVARE</p>
+            <Image
+              src="/nuvare-favicon.png"
+              alt="Nuvare"
+              height={32}
+              width={32}
+              className="object-contain"
+            />
             <Button
               onClick={handleNewChat}
               className="mt-6 h-10 w-full border border-white/20 bg-transparent text-white hover:bg-white/10"

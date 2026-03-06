@@ -20,6 +20,10 @@ const playfairDisplay = Playfair_Display({
 export const metadata: Metadata = {
   title: "Nuvare",
   description: "Nuvare onboarding",
+  icons: {
+    icon: "/nuvare-favicon.png",
+    apple: "/nuvare-favicon.png",
+  },
 };
 
 export default function RootLayout({

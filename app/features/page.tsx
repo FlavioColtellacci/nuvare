@@ -2,6 +2,7 @@
 
 import { MeshGradient } from "@paper-design/shaders-react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   CalendarClock,
   MessageSquare,
@@ -74,7 +75,13 @@ export default function FeaturesPage() {
 
       <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
         <div className="flex items-center justify-center">
-          <span className="font-light tracking-[0.3em] text-lg text-white">NUVARE</span>
+          <Image
+            src="/nuvare-header.png"
+            alt="Nuvare"
+            height={24}
+            width={120}
+            className="object-contain"
+          />
         </div>
       </header>
 
