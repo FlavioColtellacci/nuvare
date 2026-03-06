@@ -69,7 +69,6 @@ export default function Home() {
           className="absolute inset-0 h-full w-full opacity-15"
           colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
           speed={0.15}
-          wireframe
         />
       </div>
 
