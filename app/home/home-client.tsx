@@ -1552,7 +1552,7 @@ export default function DashboardClient({
 
         <div className="ml-0 md:ml-[260px] flex min-h-screen flex-col">
           <button
-            className="md:hidden fixed top-4 left-4 z-50 p-2 text-white/60 hover:text-white"
+            className="md:hidden fixed top-4 left-4 z-50 border-0 p-2 text-white/60 shadow-none outline-none ring-0 hover:text-white focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
             onClick={() => setIsSidebarOpen(true)}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">

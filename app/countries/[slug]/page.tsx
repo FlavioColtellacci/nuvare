@@ -1,12 +1,10 @@
-import { type ComponentPropsWithoutRef } from "react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import BackButton from "@/components/BackButton";
 import Disclaimer from "@/components/Disclaimer";
+import CountryGuideContent from "@/app/countries/[slug]/country-guide-content";
 import { getCountryGuide } from "@/lib/getCountryGuide";
 
 export const metadata: Metadata = {
@@ -86,7 +84,7 @@ export default async function CountryGuidePage({
 
   if (guideError || !guideData) {
     return (
-      <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 pt-24 pb-10 text-white md:px-10">
+      <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-4 pb-10 pt-24 text-white sm:px-6 md:px-10">
         <div className="onboarding-glow pointer-events-none absolute inset-0" />
         <div className="absolute top-6 left-6 z-50">
           <BackButton />
@@ -105,7 +103,7 @@ export default async function CountryGuidePage({
   const { content, updatedAt, countryName } = guideData;
 
   return (
-    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 pt-24 pb-10 text-white md:px-10">
+    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-4 pb-10 pt-24 text-white sm:px-6 md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="absolute top-6 left-6 z-50">
         <BackButton />
@@ -118,46 +116,7 @@ export default async function CountryGuidePage({
         <p className="mt-2 text-xs text-white/45">
           Last updated: {formatLastUpdated(updatedAt)}
         </p>
-        <article className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              h1: ({ children }: ComponentPropsWithoutRef<"h1">) => (
-                <h1 className="mb-4 text-xl font-semibold text-white">{children}</h1>
-              ),
-              h2: ({ children }: ComponentPropsWithoutRef<"h2">) => (
-                <h2 className="mb-3 mt-6 text-lg font-semibold text-white first:mt-0">
-                  {children}
-                </h2>
-              ),
-              h3: ({ children }: ComponentPropsWithoutRef<"h3">) => (
-                <h3 className="mb-2 mt-4 text-base font-semibold text-white">{children}</h3>
-              ),
-              p: ({ children }: ComponentPropsWithoutRef<"p">) => (
-                <p className="mb-3 text-sm leading-6 text-white/70 last:mb-0">{children}</p>
-              ),
-              ul: ({ children }: ComponentPropsWithoutRef<"ul">) => (
-                <ul className="mb-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-white/70">
-                  {children}
-                </ul>
-              ),
-              ol: ({ children }: ComponentPropsWithoutRef<"ol">) => (
-                <ol className="mb-3 list-decimal space-y-1.5 pl-5 text-sm leading-6 text-white/70">
-                  {children}
-                </ol>
-              ),
-              li: ({ children }: ComponentPropsWithoutRef<"li">) => (
-                <li>{children}</li>
-              ),
-              strong: ({ children }: ComponentPropsWithoutRef<"strong">) => (
-                <strong className="font-semibold text-white">{children}</strong>
-              ),
-              hr: () => <hr className="my-5 border-white/15" />,
-            }}
-          >
-            {content}
-          </ReactMarkdown>
-        </article>
+        <CountryGuideContent content={content} />
       </div>
       <div className="relative mx-auto mt-10 w-full max-w-4xl">
         <Disclaimer />

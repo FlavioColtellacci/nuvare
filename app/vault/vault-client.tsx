@@ -646,7 +646,12 @@ export default function VaultClient({ userId }: { userId: string }) {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm text-white">{document.file_name}</p>
+                        <p
+                          className="truncate overflow-hidden text-sm text-white"
+                          title={document.file_name}
+                        >
+                          {document.file_name}
+                        </p>
                         <p className="mt-1 text-xs text-white/50">
                           Uploaded {formatUploadDate(document.created_at)}
                         </p>
