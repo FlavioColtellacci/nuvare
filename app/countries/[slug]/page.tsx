@@ -1,11 +1,11 @@
 import { type ComponentPropsWithoutRef } from "react";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import BackButton from "@/components/BackButton";
 import Disclaimer from "@/components/Disclaimer";
 import { getCountryGuide } from "@/lib/getCountryGuide";
 
@@ -89,12 +89,7 @@ export default async function CountryGuidePage({
       <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
         <div className="onboarding-glow pointer-events-none absolute inset-0" />
         <div className="relative mx-auto w-full max-w-4xl">
-          <Link
-            href="/countries"
-            className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
-          >
-            ← Back
-          </Link>
+          <BackButton />
           <div className="mt-6 rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6 md:p-8">
             <p className="text-sm text-white/70">
               Unable to load guide. Please try again shortly.
@@ -111,12 +106,7 @@ export default async function CountryGuidePage({
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-4xl">
-        <Link
-          href="/countries"
-          className="inline-flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
-        >
-          ← Back
-        </Link>
+        <BackButton />
         <h1 className="font-editorial text-5xl text-white">{countryName}</h1>
         <p className="mt-3 text-sm text-white/55">
           Live regulatory intelligence · Updated every 24 hours
