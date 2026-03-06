@@ -375,6 +375,7 @@ export default function DashboardClient({
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -1236,11 +1237,35 @@ export default function DashboardClient({
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black text-white">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative min-h-screen">
-        <aside className="fixed inset-y-0 left-0 z-20 w-[260px] border-r border-white/12 bg-[#070707]/95 backdrop-blur-sm">
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-black/60 md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 w-[260px] border-r border-white/12 bg-[#070707]/95 backdrop-blur-sm flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:z-20`}
+        >
           <div className="flex h-full flex-col p-4">
+            <button
+              className="md:hidden absolute top-4 right-4 p-1 text-white/40 hover:text-white"
+              onClick={() => setIsSidebarOpen(false)}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+                <path
+                  d="M1 1l16 16M17 1L1 17"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
             <span className="font-light text-sm tracking-[0.3em] text-white">NUVARE</span>
             <Button
-              onClick={handleNewChat}
+              onClick={() => {
+                handleNewChat();
+                setIsSidebarOpen(false);
+              }}
               className="mt-6 h-10 w-full border border-white/20 bg-transparent text-white hover:bg-white/10"
             >
               New Chat
@@ -1361,7 +1386,10 @@ export default function DashboardClient({
                       ) : (
                         <button
                           type="button"
-                          onClick={() => void loadConversationMessages(session.id)}
+                          onClick={() => {
+                            void loadConversationMessages(session.id);
+                            setIsSidebarOpen(false);
+                          }}
                           className={cn(
                             "w-full rounded-lg border px-3 py-2 pr-10 text-left text-sm transition-colors",
                             selectedConversationId === session.id
@@ -1509,7 +1537,10 @@ export default function DashboardClient({
               <Button
                 variant="ghost"
                 size="lg"
-                onClick={handleSignOut}
+                onClick={() => {
+                  setIsSidebarOpen(false);
+                  void handleSignOut();
+                }}
                 disabled={isSigningOut}
                 className="mt-2 h-9 w-full justify-start px-2 text-white/80 hover:bg-white/10 hover:text-white"
               >
@@ -1519,7 +1550,17 @@ export default function DashboardClient({
           </div>
         </aside>
 
-        <div className="ml-[260px] flex min-h-screen flex-col">
+        <div className="ml-0 md:ml-[260px] flex min-h-screen flex-col">
+          <button
+            className="md:hidden fixed top-4 left-4 z-50 p-2 text-white/60 hover:text-white"
+            onClick={() => setIsSidebarOpen(true)}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <rect y="3" width="20" height="2" rx="1" />
+              <rect y="9" width="20" height="2" rx="1" />
+              <rect y="15" width="20" height="2" rx="1" />
+            </svg>
+          </button>
           <section className="flex h-screen flex-col px-6 py-6 md:px-10">
             {!hasProfile ? (
               <p className="mb-4 text-sm text-amber-300">
