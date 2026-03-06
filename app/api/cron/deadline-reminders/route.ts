@@ -3,7 +3,7 @@
 // Also add RESEND_API_KEY if not already present.
 import { NextResponse } from "next/server";
 import React from "react";
-import { renderAsync } from "@react-email/render";
+import { render } from "@react-email/render";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -174,7 +174,7 @@ export async function GET(request: Request) {
       }
 
       try {
-        const html = await renderAsync(
+        const html = await render(
           React.createElement(DeadlineReminderEmail, {
             userName: recipientEmail.split("@")[0] ?? "there",
             deadlines: qualifyingDeadlines,
