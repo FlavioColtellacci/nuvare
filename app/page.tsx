@@ -101,12 +101,12 @@ export default function Home() {
           </motion.div>
 
           <nav className="flex items-center justify-center gap-2">
-            <a
-              href="#features"
+            <Link
+              href="/features"
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
             >
               Features
-            </a>
+            </Link>
             <Link
               href="/pricing"
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
