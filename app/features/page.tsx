@@ -54,7 +54,7 @@ const features: Feature[] = [
 
 export default function FeaturesPage() {
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-white">
+    <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-black text-white md:overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <MeshGradient
           className="absolute inset-0 h-full w-full"
@@ -68,26 +68,26 @@ export default function FeaturesPage() {
         />
       </div>
 
-      <div className="absolute left-6 top-6 z-30">
-        <BackButton />
+      <div className="fixed left-4 top-4 z-30 md:absolute md:left-6 md:top-6">
+        <BackButton className="min-h-11 min-w-11 px-2 py-2 sm:min-h-0 sm:min-w-0 sm:px-0 sm:py-0" />
       </div>
 
-      <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
+      <header className="relative z-20 px-4 pb-3 pt-6 md:px-10 md:pt-8">
         <div className="flex items-center justify-center">
           <span className="font-light text-xl tracking-[0.25em] text-white">NUVARE</span>
         </div>
       </header>
 
-      <section className="relative z-20 flex-1 px-6 pb-20 pt-10 md:px-10">
+      <section className="relative z-20 flex-1 px-4 pb-20 pt-10 md:px-10">
         <div className="max-w-6xl">
           <div className="space-y-1">
-            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
+            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-4xl font-light leading-tight text-transparent sm:text-5xl md:text-7xl">
               Everything
             </h1>
-            <h1 className="text-5xl font-black leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] md:text-7xl">
+            <h1 className="text-4xl font-black leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] sm:text-5xl md:text-7xl">
               you
             </h1>
-            <h1 className="text-5xl font-light italic leading-tight text-white/80 md:text-7xl">
+            <h1 className="text-4xl font-light italic leading-tight text-white/80 sm:text-5xl md:text-7xl">
               need.
             </h1>
           </div>
@@ -105,7 +105,7 @@ export default function FeaturesPage() {
                 >
                   <Icon className="mb-3 text-white/60" size={18} />
                   <h2 className="mb-2 text-sm font-medium text-white">{feature.title}</h2>
-                  <p className="text-xs font-light leading-relaxed text-white/55">
+                  <p className="text-sm font-light leading-relaxed text-white/55 sm:text-xs">
                     {feature.description}
                   </p>
                 </motion.div>
@@ -115,7 +115,7 @@ export default function FeaturesPage() {
         </div>
       </section>
 
-      <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
+      <div className="relative z-20 mt-auto px-4 pb-6 md:px-10">
         <Disclaimer />
       </div>
     </main>
