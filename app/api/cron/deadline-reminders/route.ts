@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import React from "react";
 import { render } from "@react-email/render";
 import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { Resend } from "resend";
 
 import { DeadlineReminderEmail } from "@/lib/emails/DeadlineReminderEmail";
@@ -68,14 +69,14 @@ function groupDeadlinesByUser(deadlines: DeadlineRow[]) {
 }
 
 async function listAllAuthUsers(
-  supabaseAdmin: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<any, any, any>,
 ): Promise<Map<string, string>> {
   const userEmailMap = new Map<string, string>();
   const perPage = 1000;
   let page = 1;
 
   while (true) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
     if (error) {
       throw new Error(error.message);
     }
