@@ -182,7 +182,7 @@ export default function Home() {
 
           <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-white/65 md:text-base">
             Nuvare watches your compliance and financial obligations across every
-            country you live, work, and invest in — so nothing falls through the
+            country you live, work, and invest in, so nothing falls through the
             cracks.
           </p>
 
@@ -208,13 +208,15 @@ export default function Home() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsFaqOpen(true)}
-          className="absolute bottom-20 right-6 rounded-full border border-white/15 bg-white/8 px-5 py-2.5 text-xs font-light text-white/70 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white md:bottom-24 md:right-10"
-        >
-          FAQ
-        </button>
+        <div className="fixed bottom-6 right-6 z-30">
+          <button
+            type="button"
+            onClick={() => setIsFaqOpen(true)}
+            className="rounded-full border border-white/15 bg-white/8 px-5 py-2.5 text-xs font-light text-white/70 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
+          >
+            FAQ
+          </button>
+        </div>
       </section>
 
       <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
@@ -252,8 +254,8 @@ export default function Home() {
                 <p className="mb-4 mt-1 text-sm font-light text-white/60">
                   Nuvare is a proactive compliance and financial intelligence tool for
                   internationally mobile professionals. It tracks your obligations
-                  across countries — visas, tax deadlines, permits, foreign asset
-                  declarations — and tells you exactly what to do and when.
+                  across countries, visas, tax deadlines, permits, foreign asset
+                  declarations, and tells you exactly what to do and when.
                 </p>
 
                 <p className="text-sm font-medium text-white">Who is it for?</p>
