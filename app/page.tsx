@@ -79,7 +79,7 @@ export default function Home() {
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
-            <span className="font-editorial text-xl tracking-[0.25em] text-white">
+            <span className="font-light text-xl tracking-[0.25em] text-white">
               NUVARE
             </span>
             <AnimatePresence>

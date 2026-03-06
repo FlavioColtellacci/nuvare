@@ -74,7 +74,7 @@ export default function FeaturesPage() {
 
       <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
         <div className="flex items-center justify-center">
-          <span className="font-editorial text-xl tracking-[0.25em] text-white">NUVARE</span>
+          <span className="font-light text-xl tracking-[0.25em] text-white">NUVARE</span>
         </div>
       </header>
 

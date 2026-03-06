@@ -54,11 +54,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col bg-black text-white">
       <div className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="flex w-full max-w-sm flex-col items-center rounded-2xl border border-white/12 bg-[#0b0b0b] p-8 text-center">
-          <span className="font-editorial text-xl tracking-[0.25em] text-white">NUVARE</span>
-
-          <h1 className="text-center font-editorial text-2xl text-white">
-            Sign in to Nuvare
-          </h1>
+          <span className="font-light text-lg tracking-[0.3em] text-white">NUVARE</span>
 
           <div className="mt-6 w-full space-y-3">
             <button
