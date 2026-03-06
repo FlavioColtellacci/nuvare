@@ -528,7 +528,7 @@ export default function VaultClient({ userId }: { userId: string }) {
   }
 
   return (
-    <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black px-6 py-10 text-white md:px-10">
+    <main className="onboarding-bg relative min-h-screen overflow-x-hidden bg-black px-4 py-10 text-white sm:px-6 md:px-10">
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative mx-auto w-full max-w-5xl">
         <h1 className="font-editorial text-5xl text-white">Document Vault</h1>
@@ -579,7 +579,7 @@ export default function VaultClient({ userId }: { userId: string }) {
         {errorMessage ? <p className="mt-4 text-sm text-red-300">{errorMessage}</p> : null}
         {successMessage ? <p className="mt-4 text-sm text-emerald-300">{successMessage}</p> : null}
 
-        <section className="mt-8">
+        <section className="mt-8 w-full min-w-0">
           {isLoadingDocuments ? (
             <p className="text-sm text-white/55">Loading documents...</p>
           ) : documents.length === 0 ? (
@@ -587,7 +587,7 @@ export default function VaultClient({ userId }: { userId: string }) {
               No documents uploaded yet. Add your first document above.
             </p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid w-full min-w-0 gap-4 md:grid-cols-2">
               {documents.map((document) => {
                 const isExpanded = expandedByDocumentId[document.id] ?? false;
                 const hasExtractedDates = document.extracted_dates.length > 0;
@@ -597,7 +597,7 @@ export default function VaultClient({ userId }: { userId: string }) {
                 return (
                   <article
                     key={document.id}
-                    className="relative cursor-pointer rounded-xl bg-white/[0.03] p-4"
+                    className="relative w-full min-w-0 cursor-pointer overflow-hidden rounded-xl bg-white/[0.03] p-4"
                   >
                     <div className="absolute right-3 top-3 inline-flex items-center gap-2">
                       <button
