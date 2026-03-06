@@ -29,7 +29,7 @@ const features: Feature[] = [
   {
     title: "Ask Anything",
     description:
-      "Plain-language answers to complex cross-border questions, powered by Claude and live regulatory data. The 80% answer that tells you when you need a professional.",
+      "Plain-language answers to complex cross-border questions, powered by Anthropic's AI and live Perplexity data. The 80% answer that tells you when you need a professional.",
     Icon: MessageSquare,
   },
   {

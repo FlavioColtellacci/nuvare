@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import CountriesClient from "@/app/countries/countries-client";
 import { COUNTRIES } from "@/app/countries/countries-data";
+import BackButton from "@/components/BackButton";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -32,5 +33,12 @@ export default async function CountriesPage() {
     redirect("/pricing");
   }
 
-  return <CountriesClient countries={COUNTRIES} />;
+  return (
+    <div className="relative">
+      <div className="absolute left-6 top-6 z-50">
+        <BackButton />
+      </div>
+      <CountriesClient countries={COUNTRIES} />
+    </div>
+  );
 }

@@ -208,15 +208,6 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="fixed bottom-6 right-6 z-30">
-          <button
-            type="button"
-            onClick={() => setIsFaqOpen(true)}
-            className="rounded-full border border-white/15 bg-white/8 px-5 py-2.5 text-xs font-light text-white/70 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
-          >
-            FAQ
-          </button>
-        </div>
       </section>
 
       <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
