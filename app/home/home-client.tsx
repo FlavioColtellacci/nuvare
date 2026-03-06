@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Globe, Shield } from "lucide-react";
+import { Bell, Globe, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +46,14 @@ type SubscriptionTier = "none" | "core" | "professional";
 type ViewedCountry = {
   slug: string;
   countryName: string;
+};
+
+type NotificationItem = {
+  id: string;
+  title: string;
+  body: string;
+  read: boolean;
+  created_at: string;
 };
 
 const DEFAULT_THINKING_PHRASES = [
@@ -100,6 +108,31 @@ function formatDate(dateString: string) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function formatRelativeTime(dateString: string) {
+  const timestamp = new Date(dateString).getTime();
+  if (Number.isNaN(timestamp)) {
+    return "Just now";
+  }
+
+  const elapsedMs = Date.now() - timestamp;
+  const minuteMs = 60 * 1000;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  if (elapsedMs < minuteMs) return "Just now";
+  if (elapsedMs < hourMs) {
+    const minutes = Math.floor(elapsedMs / minuteMs);
+    return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  }
+  if (elapsedMs < dayMs) {
+    const hours = Math.floor(elapsedMs / hourMs);
+    return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  }
+
+  const days = Math.floor(elapsedMs / dayMs);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 function daysRemaining(dueDate: string) {
@@ -307,6 +340,7 @@ export default function DashboardClient({
   const abortControllerRef = useRef<AbortController | null>(null);
   const stopGenerationRequestedRef = useRef(false);
   const activeConversationIdRef = useRef<string | null>(null);
+  const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
@@ -338,6 +372,9 @@ export default function DashboardClient({
   const [editingUserMessageDraft, setEditingUserMessageDraft] = useState("");
   const [deadlines, setDeadlines] = useState<DashboardDeadline[]>(initialDeadlines);
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [form, setForm] = useState({
     title: "",
     category: "",
@@ -717,6 +754,32 @@ export default function DashboardClient({
   }, [supabase, userId]);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    async function loadNotifications() {
+      try {
+        const response = await fetch("/api/notifications", { method: "GET" });
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as NotificationItem[];
+        if (isCancelled || !Array.isArray(payload)) return;
+        setNotifications(payload);
+        setUnreadCount(payload.filter((item) => !item.read).length);
+      } catch {
+        // Ignore notification fetch failures to avoid impacting chat UX.
+      }
+    }
+
+    void loadNotifications();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!openConversationMenuId) return;
 
     function handleOutsideMenuClick(event: MouseEvent) {
@@ -735,6 +798,38 @@ export default function DashboardClient({
       window.removeEventListener("mousedown", handleOutsideMenuClick);
     };
   }, [openConversationMenuId]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return;
+
+    async function markNotificationsRead() {
+      try {
+        await fetch("/api/notifications", { method: "PATCH" });
+      } catch {
+        // Ignore patch failures; panel remains usable.
+      }
+    }
+
+    setUnreadCount(0);
+    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+    void markNotificationsRead();
+  }, [isNotificationsOpen]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen) return;
+
+    function handleOutsideNotificationsClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (notificationsPanelRef.current?.contains(target)) return;
+      setIsNotificationsOpen(false);
+    }
+
+    window.addEventListener("mousedown", handleOutsideNotificationsClick);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideNotificationsClick);
+    };
+  }, [isNotificationsOpen]);
 
   async function streamAssistantResponse(
     nextMessages: ChatMessage[],
@@ -1150,6 +1245,44 @@ export default function DashboardClient({
             >
               New Chat
             </Button>
+            <div ref={notificationsPanelRef} className="relative mt-3">
+              <button
+                type="button"
+                onClick={() => setIsNotificationsOpen((current) => !current)}
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-lg border border-white/20 bg-[#101010] text-white transition-colors hover:bg-white/10"
+                aria-label="Notifications"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex h-2 w-2 items-center justify-center rounded-full bg-red-500 text-[8px] leading-none text-white">
+                    {unreadCount >= 10 ? "9+" : unreadCount}
+                  </span>
+                ) : null}
+              </button>
+              {isNotificationsOpen ? (
+                <div className="absolute left-0 top-12 z-30 w-[232px] rounded-2xl border border-white/12 bg-[#0b0b0b] p-3 text-sm">
+                  <p className="font-editorial text-sm text-white">Notifications</p>
+                  <div className="mt-2 space-y-2">
+                    {notifications.length === 0 ? (
+                      <p className="text-white/40">No notifications yet</p>
+                    ) : (
+                      notifications.slice(0, 20).map((notification) => (
+                        <article
+                          key={notification.id}
+                          className="rounded-lg border border-white/12 bg-[#101010] p-2"
+                        >
+                          <p className="text-white">{notification.title}</p>
+                          <p className="mt-1 text-white/55">{notification.body}</p>
+                          <p className="mt-1 text-xs text-white/40">
+                            {formatRelativeTime(notification.created_at)}
+                          </p>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <Link
               href="/vault"
               className={cn(
