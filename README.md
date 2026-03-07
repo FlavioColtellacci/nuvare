@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nuvare
 
-## Getting Started
+Nuvare is a Next.js app for cross-border compliance and financial intelligence.  
+It includes onboarding, AI guidance, deadline tracking, country intelligence, document vault, notifications, and Stripe-based subscriptions.
 
-First, run the development server:
+## Tech stack
+
+- Next.js App Router
+- React + TypeScript
+- Tailwind CSS
+- Supabase (auth + data)
+- Stripe (checkout + webhooks)
+- Anthropic + Perplexity integrations
+
+## Getting started
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create `.env.local` and add the required keys (see list below).
+3. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Required in `.env.local`:
 
-## Learn More
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ANTHROPIC_API_KEY`
+- `PERPLEXITY_API_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_CORE_MONTHLY_PRICE_ID`
+- `STRIPE_CORE_YEARLY_PRICE_ID`
+- `STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID`
+- `STRIPE_PROFESSIONAL_YEARLY_PRICE_ID`
+- `NEXT_PUBLIC_APP_URL`
+- `RESEND_API_KEY`
+- `CRON_SECRET`
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev` - run local development server
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run lint` - run ESLint
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project structure
 
-## Deploy on Vercel
+- `app/` - routes, pages, and API handlers
+- `components/` - shared UI and app components
+- `lib/` - service clients and helper utilities
+- `public/` - static assets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Keep generated artifacts (`.next/`, `node_modules/`, `tsconfig.tsbuildinfo`) out of commits.
+- This repo intentionally uses a dark, premium UI style across pages.
