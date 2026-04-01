@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import type { Database } from "@/lib/database.types";
+
 /**
  * Paths that must not run Supabase session refresh (no cookie session; secrets instead).
  */
@@ -33,7 +35,7 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
