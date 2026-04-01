@@ -8,6 +8,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Country Intelligence | Nuvare",
+  alternates: {
+    canonical: "/country-guides",
+  },
   robots: {
     index: false,
     follow: false,

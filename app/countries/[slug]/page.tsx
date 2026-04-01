@@ -6,20 +6,31 @@ import CountryGuideContent from "@/app/countries/[slug]/country-guide-content";
 import { getCountryGuide } from "@/lib/getCountryGuide";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Country Guide | Nuvare",
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-    googleBot: {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  return {
+    title: "Country Guide | Nuvare",
+    alternates: {
+      canonical: `/country-guides/${slug}`,
+    },
+    robots: {
       index: false,
       follow: false,
-      noimageindex: true,
-      nosnippet: true,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+        nosnippet: true,
+      },
     },
-  },
-};
+  };
+}
 
 function formatLastUpdated(updatedAt: string) {
   return new Intl.DateTimeFormat("en-GB", {

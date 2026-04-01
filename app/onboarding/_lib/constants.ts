@@ -72,10 +72,16 @@ export const ABROAD_ITEMS = [
 ] as const;
 
 export const ONBOARDING_DRAFT_KEY = "nuvare-onboarding-draft-v1";
+export const ONBOARDING_VARIANT_KEY = "nuvare-onboarding-variant-v1";
 
-export const ONBOARDING_QUESTION_STEPS = 9;
-export const ONBOARDING_AUTH_STEP = 9;
-export const ONBOARDING_CONFIRMATION_STEP = 10;
+export type OnboardingVariant = "classic" | "progressive";
+
+export const ONBOARDING_CLASSIC_QUESTION_STEPS = 9;
+export const ONBOARDING_PROGRESSIVE_QUESTION_STEPS = 3;
+export const ONBOARDING_PROGRESSIVE_RESUME_STEP = 3;
+
+export const ONBOARDING_EXPERIMENT_MODE =
+  process.env.NEXT_PUBLIC_ONBOARDING_EXPERIMENT_MODE ?? "split";
 
 export const INITIAL_ANSWERS: OnboardingAnswers = {
   meaningfulCountries: [],
