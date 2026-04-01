@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
 import {
@@ -6,23 +5,26 @@ import {
   getLatestUserQuestion,
   normalizeAskMessages,
 } from "@/lib/ai/messages";
-import { buildAskSystemPrompt } from "@/lib/ai/prompts";
+import { getMinimaxConfig } from "@/lib/ai/minimax";
+import { runMinimaxAskOrchestration } from "@/lib/ai/orchestrator";
 import { fetchPerplexityRegulatoryContext } from "@/lib/ai/perplexity";
+import type { ToolHandlerContext } from "@/lib/ai/tools/handlers";
 import type { AskPayload, OnboardingAnswers } from "@/lib/ai/types";
-import { logApiError } from "@/lib/log";
+import { logApiError, logApiEvent } from "@/lib/log";
 import { enforceAskRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
-    if (!apiKey) {
+    const minimaxCfg = getMinimaxConfig();
+    if (!minimaxCfg.apiKey) {
       return NextResponse.json(
-        { error: "Missing ANTHROPIC_API_KEY." },
+        { error: "Missing MINIMAX_API_KEY." },
         { status: 500 },
       );
     }
+
+    const perplexityApiKey = process.env.PERPLEXITY_API_KEY?.trim();
     if (!perplexityApiKey) {
       return NextResponse.json(
         { error: "Missing PERPLEXITY_API_KEY." },
@@ -64,44 +66,35 @@ export async function POST(request: Request) {
 
     const onboardingAnswers =
       (profile?.onboarding_answers as OnboardingAnswers | null) ?? {};
+
     const userCountries = extractUserCountries(onboardingAnswers);
     const latestQuestion = getLatestUserQuestion(messages);
-    const { context: currentRegulatoryContext } = await fetchPerplexityRegulatoryContext(
-      latestQuestion,
-      userCountries,
+
+    let preloadedRegulatoryContext: string | null = null;
+    if (deepResearch) {
+      logApiEvent("/api/ask", "perplexity_prefetch", { mode: "deep_research" });
+      const { context } = await fetchPerplexityRegulatoryContext(
+        latestQuestion,
+        userCountries,
+        perplexityApiKey,
+        true,
+      );
+      preloadedRegulatoryContext = context;
+    }
+
+    const toolContext: ToolHandlerContext = {
+      supabase,
+      userId: user.id,
+      onboardingAnswers,
       perplexityApiKey,
-      deepResearch,
-    );
+    };
 
-    const anthropic = new Anthropic({ apiKey });
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 4096,
-      system: buildAskSystemPrompt(onboardingAnswers, currentRegulatoryContext),
-      messages,
-    });
-    const encoder = new TextEncoder();
-
-    const readableStream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        try {
-          for await (const chunk of stream) {
-            if (
-              chunk.type === "content_block_delta" &&
-              chunk.delta.type === "text_delta"
-            ) {
-              controller.enqueue(encoder.encode(chunk.delta.text));
-            }
-          }
-          controller.close();
-        } catch (streamError) {
-          logApiError("/api/ask", streamError, { phase: "stream" });
-          controller.error(streamError);
-        }
-      },
-      cancel() {
-        stream.abort();
-      },
+    const readableStream = await runMinimaxAskOrchestration({
+      model: minimaxCfg.model,
+      conversation: messages,
+      toolContext,
+      preloadedRegulatoryContext,
+      deepResearchPrefetch: deepResearch,
     });
 
     return new Response(readableStream, {

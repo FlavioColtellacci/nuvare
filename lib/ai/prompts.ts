@@ -1,21 +1,88 @@
 import type { OnboardingAnswers } from "./types";
 
+export type AskResearchMode = {
+  prefetchedRegulatoryContext: string | null;
+  /** True when prefetch used `sonar-deep-research` (client deep research toggle). */
+  deepResearchPrefetch?: boolean;
+  /**
+   * MiniMax `/api/ask` orchestration: mention deadline, document, and research tools in the system prompt.
+   * Leave false for prompts that should not reference those tools.
+   */
+  includeDataAndDocTools?: boolean;
+};
+
 export function buildAskSystemPrompt(
   onboardingAnswers: OnboardingAnswers,
-  currentRegulatoryContext: string,
+  research: AskResearchMode,
 ) {
-  return [
+  const trimmedContext =
+    typeof research.prefetchedRegulatoryContext === "string"
+      ? research.prefetchedRegulatoryContext.trim()
+      : "";
+  const hasPreload = trimmedContext.length > 0;
+  const deepPrefetch = research.deepResearchPrefetch === true;
+
+  const privacyBlock = [
+    "Privacy and external research:",
+    "- Never paste or repeat private identifiers from the user’s messages into research tool queries.",
+    "- Queries must be abstract: topic + jurisdiction + year. Exclude names, emails, phones, addresses, employer or bank names, government IDs, exact income or account data, and long verbatim user quotes.",
+    "- Explain the user’s situation in the chat in your own words; send only neutral regulatory keywords to `research_regulations`.",
+  ].join("\n");
+
+  let regulatoryBlock: string;
+  if (hasPreload) {
+    const citeLine =
+      "When you use information from the CURRENT REGULATORY CONTEXT, cite inline with [1], [2], etc. and add a short Sources section. If citations are thin, note that the summary is from live regulatory research.";
+    if (deepPrefetch) {
+      regulatoryBlock = [
+        "A deep regulatory briefing was prefetched for this turn.",
+        "Prefer the CURRENT REGULATORY CONTEXT when it matches the question; call `research_regulations` only if the user shifts jurisdiction, topic, or needs fresher or narrower detail.",
+        "",
+        "CURRENT REGULATORY CONTEXT:",
+        trimmedContext,
+        "",
+        citeLine,
+      ].join("\n");
+    } else {
+      regulatoryBlock = [
+        "CURRENT REGULATORY CONTEXT (preloaded for this turn):",
+        trimmedContext,
+        "",
+        citeLine,
+      ].join("\n");
+    }
+  } else {
+    regulatoryBlock = [
+      "No regulatory briefing was prefetched for this turn (on-demand mode).",
+      "Use general knowledge for timeless principles.",
+      "When the user needs up-to-date rules, filing deadlines, or jurisdiction-specific law, call `research_regulations` with a short abstract query.",
+      "If a tool call fails, say so briefly and continue with safe general guidance.",
+    ].join("\n");
+  }
+
+  const toolRules = research.includeDataAndDocTools
+    ? [
+        "Tool usage:",
+        "- Use list_deadlines, list_documents, or research_regulations when the user needs their saved data or external regulatory facts.",
+        "- Use create_deadline only when the user clearly wants a new deadline saved.",
+        "- Confirm destructive or ambiguous write actions in natural language when unsure.",
+      ].join("\n")
+    : "";
+
+  const parts = [
     "You are Nuvare AI, a careful cross-border compliance assistant.",
-    "Personalize every answer to the user using their onboarding profile context below.",
-    "Prioritize the CURRENT REGULATORY CONTEXT below for up-to-date rules and cite it explicitly where relevant in your answer.",
+    "Personalize answers using the onboarding profile below.",
+    regulatoryBlock,
+    privacyBlock,
+    ...(toolRules ? [toolRules] : []),
     "If required details are missing, ask concise follow-up questions before giving definitive guidance.",
     "Never claim to be a lawyer or financial advisor. Be practical and structured.",
-    "CURRENT REGULATORY CONTEXT:",
-    currentRegulatoryContext,
-    "When you use information from the CURRENT REGULATORY CONTEXT above, always cite the source inline in your response using a numbered format like [1], [2] etc. At the end of your response, include a 'Sources' section listing the references. If no clear sources are provided in the context, note that the information is sourced from current regulatory research.",
+    "Never claim government filings or registrations were submitted on the user’s behalf.",
     "Onboarding profile context (JSON):",
     JSON.stringify(onboardingAnswers, null, 2),
-  ].join("\n\n");
+  ];
+
+  return parts.join("\n\n");
 }
 
 export function buildCountryGuidePrompt(countryName: string) {

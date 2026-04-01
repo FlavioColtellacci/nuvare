@@ -274,7 +274,7 @@ export default function Home() {
 
                 <p className="text-sm font-medium text-white">How does the AI work?</p>
                 <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  Nuvare combines Perplexity for live regulatory data with Claude for
+                  Nuvare combines Perplexity for live regulatory data with MiniMax for
                   personalised reasoning over your specific multi-country situation.
                 </p>
               </div>
