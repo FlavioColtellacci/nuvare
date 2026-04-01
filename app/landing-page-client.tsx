@@ -156,6 +156,12 @@ export default function LandingPageClient() {
 
           <nav className="flex items-center justify-center gap-2">
             <Link
+              href="/intelligence-methodology"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
+            >
+              How it Works
+            </Link>
+            <Link
               href="/features"
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
             >
@@ -259,6 +265,14 @@ export default function LandingPageClient() {
             Nuvare watches your compliance and financial obligations across every
             country you live, work, and invest in, so nothing falls through the
             cracks.
+          </p>
+          <p className="mt-3 text-sm text-[color:var(--marketing-text-muted)]">
+            <Link
+              href="/intelligence-methodology"
+              className="underline decoration-white/40 underline-offset-4 transition-colors hover:text-[color:var(--marketing-text-strong)]"
+            >
+              Read our trust and methodology notes
+            </Link>
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
