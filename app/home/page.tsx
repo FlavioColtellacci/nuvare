@@ -11,7 +11,18 @@ type ViewedCountry = {
 };
 
 export const metadata: Metadata = {
-  title: "Nuvare",
+  title: "Dashboard | Nuvare",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
+  },
 };
 
 export default async function HomePage() {

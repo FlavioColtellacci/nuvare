@@ -1,0 +1,127 @@
+"use client";
+
+import { MeshGradient } from "@paper-design/shaders-react";
+import { motion } from "framer-motion";
+import {
+  CalendarClock,
+  MessageSquare,
+  FolderLock,
+  Globe,
+  UserCircle,
+  type LucideIcon,
+} from "lucide-react";
+import BackButton from "@/components/BackButton";
+import Disclaimer from "@/components/Disclaimer";
+
+type Feature = {
+  title: string;
+  description: string;
+  Icon: LucideIcon;
+};
+
+const features: Feature[] = [
+  {
+    title: "Deadline Dashboard",
+    description:
+      "Every visa, tax, permit, and foreign asset obligation in one personalised calendar. Colour-coded by urgency with alerts at 90, 30, and 7 days.",
+    Icon: CalendarClock,
+  },
+  {
+    title: "Ask Anything",
+    description:
+      "Plain-language answers to complex cross-border questions, powered by MiniMax and live Perplexity data. The 80% answer that tells you when you need a professional.",
+    Icon: MessageSquare,
+  },
+  {
+    title: "Document Vault",
+    description:
+      "Secure storage for passports, visas, tax certificates, and permits. AI extracts key dates automatically and adds them to your dashboard.",
+    Icon: FolderLock,
+  },
+  {
+    title: "Country Intelligence",
+    description:
+      "Deep financial and compliance intelligence for every country you live, work, or invest in. Visa rules, tax triggers, banking, and real estate, always current.",
+    Icon: Globe,
+  },
+  {
+    title: "My Situation",
+    description:
+      "One profile that captures your full cross-border picture. Nationalities, residencies, assets, and planned moves, all in one place.",
+    Icon: UserCircle,
+  },
+];
+
+export default function FeaturesPageClient() {
+  return (
+    <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-black text-[color:var(--marketing-text-strong)] md:overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <MeshGradient
+          className="absolute inset-0 h-full w-full"
+          colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
+          speed={0.2}
+        />
+        <MeshGradient
+          className="absolute inset-0 h-full w-full opacity-15"
+          colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
+          speed={0.15}
+        />
+      </div>
+
+      <div className="fixed left-4 top-4 z-30 md:absolute md:left-6 md:top-6">
+        <BackButton className="min-h-11 min-w-11 px-2 py-2 sm:min-h-0 sm:min-w-0 sm:px-0 sm:py-0" />
+      </div>
+
+      <header className="relative z-20 px-4 pb-3 pt-6 md:px-10 md:pt-8">
+        <div className="flex items-center justify-center">
+          <span className="font-light text-xl tracking-[0.25em] text-[color:var(--marketing-text-strong)]">
+            NUVARE
+          </span>
+        </div>
+      </header>
+
+      <section className="relative z-20 flex-1 px-4 pb-20 pt-10 md:px-10">
+        <div className="max-w-6xl">
+          <div className="space-y-1">
+            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-4xl font-light leading-tight text-transparent sm:text-5xl md:text-7xl">
+              Everything
+            </h1>
+            <h1 className="text-4xl font-black leading-none text-[color:var(--marketing-text-strong)] drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] sm:text-5xl md:text-7xl">
+              you
+            </h1>
+            <h1 className="text-4xl font-light italic leading-tight text-[color:var(--marketing-text-base)] sm:text-5xl md:text-7xl">
+              need.
+            </h1>
+          </div>
+
+          <div className="mt-8 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {features.map((feature, index) => {
+              const Icon = feature.Icon;
+              return (
+                <motion.div
+                  key={feature.title}
+                  className="rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: index * 0.1, ease: "easeOut" }}
+                >
+                  <Icon className="mb-3 text-[color:var(--marketing-text-base)]" size={18} />
+                  <h2 className="mb-2 text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                    {feature.title}
+                  </h2>
+                  <p className="text-sm font-light leading-relaxed text-[color:var(--marketing-text-muted)] sm:text-xs">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <div className="relative z-20 mt-auto px-4 pb-6 md:px-10">
+        <Disclaimer />
+      </div>
+    </main>
+  );
+}

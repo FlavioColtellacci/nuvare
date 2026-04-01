@@ -7,7 +7,18 @@ import BackButton from "@/components/BackButton";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Country Intelligence - Nuvare",
+  title: "Country Intelligence | Nuvare",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
+  },
 };
 
 export default async function CountriesPage() {
