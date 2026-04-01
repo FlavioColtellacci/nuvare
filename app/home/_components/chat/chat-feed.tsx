@@ -11,6 +11,7 @@ import {
 } from "@/app/home/_lib/constants";
 import { stripTrailingDots } from "@/app/home/_lib/format";
 import { extractSourceItems, splitAssistantContent } from "@/app/home/_lib/sources";
+import { formatToolStepLabel } from "@/app/home/_lib/tool-labels";
 import type { ChatMessage } from "@/app/home/_lib/types";
 
 import { AssistantMarkdown } from "./assistant-markdown";
@@ -150,6 +151,42 @@ export function ChatFeed({
                   </p>
                   {message.role === "assistant" ? (
                     <>
+                      {message.toolSteps && message.toolSteps.length > 0 ? (
+                        <div className="mb-3 rounded-lg border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5">
+                          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-200/80">
+                            Agent steps
+                          </p>
+                          <ul className="flex flex-col gap-1.5">
+                            {message.toolSteps.map((step) => (
+                              <li
+                                key={step.id}
+                                className="flex items-center gap-2 text-xs text-white/80"
+                              >
+                                <span
+                                  className={
+                                    step.status === "running"
+                                      ? "text-amber-300/90"
+                                      : step.status === "error"
+                                        ? "text-red-400/90"
+                                        : "text-emerald-400/90"
+                                  }
+                                  aria-hidden
+                                >
+                                  {step.status === "running"
+                                    ? "◌"
+                                    : step.status === "error"
+                                      ? "✕"
+                                      : "✓"}
+                                </span>
+                                <span className="leading-snug">
+                                  {formatToolStepLabel(step.name)}
+                                  {step.status === "running" ? "…" : null}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                       <AssistantMarkdown>{mainContent}</AssistantMarkdown>
 
                       <div className="mt-3 flex items-center gap-2">

@@ -1,3 +1,7 @@
+import {
+  encodeAskSseEvent,
+  encodeAskSseTextChunks,
+} from "@/lib/ai/ask-stream-events";
 import { buildAskSystemPrompt } from "@/lib/ai/prompts";
 import {
   getAssistantMessage,
@@ -40,14 +44,15 @@ function appendAssistantTurn(
   messages.push(row);
 }
 
-function textResponseStream(text: string): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  return new ReadableStream({
-    start(controller) {
-      controller.enqueue(encoder.encode(text));
-      controller.close();
-    },
-  });
+function finishAskSseWithText(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  text: string,
+) {
+  for (const chunk of encodeAskSseTextChunks(text)) {
+    controller.enqueue(chunk);
+  }
+  controller.enqueue(encodeAskSseEvent({ type: "done" }));
+  controller.close();
 }
 
 export type RunMinimaxAskParams = {
@@ -60,7 +65,8 @@ export type RunMinimaxAskParams = {
 };
 
 /**
- * Runs MiniMax tool loop (non-streaming rounds), then returns a plain-text UTF-8 stream for the client.
+ * Runs MiniMax tool loop (non-streaming rounds), then streams UTF-8 SSE (`data: {...}\\n\\n`)
+ * with tool lifecycle events and final answer text chunks for the dashboard.
  */
 export async function runMinimaxAskOrchestration(
   params: RunMinimaxAskParams,
@@ -72,97 +78,141 @@ export async function runMinimaxAskOrchestration(
     preloadedRegulatoryContext,
     deepResearchPrefetch = false,
   } = params;
-  const systemPrompt = buildAskSystemPrompt(toolContext.onboardingAnswers, {
-    prefetchedRegulatoryContext: preloadedRegulatoryContext,
-    deepResearchPrefetch,
-    includeDataAndDocTools: true,
-  });
 
-  const messages: MinimaxChatMessage[] = [
-    { role: "system", content: systemPrompt },
-    ...conversation.map(
-      (m): MinimaxChatMessage => ({
-        role: m.role,
-        content: m.content,
-      }),
-    ),
-  ];
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const systemPrompt = buildAskSystemPrompt(toolContext.onboardingAnswers, {
+          prefetchedRegulatoryContext: preloadedRegulatoryContext,
+          deepResearchPrefetch,
+          includeDataAndDocTools: true,
+        });
 
-  let toolSteps = 0;
+        const messages: MinimaxChatMessage[] = [
+          { role: "system", content: systemPrompt },
+          ...conversation.map(
+            (m): MinimaxChatMessage => ({
+              role: m.role,
+              content: m.content,
+            }),
+          ),
+        ];
 
-  while (toolSteps < MAX_MINIMAX_TOOL_STEPS) {
-      const completion = await minimaxChatCompletion({
-        model,
-        messages,
-        tools: ASK_TOOL_DEFINITIONS,
-        tool_choice: "auto",
-        max_tokens: MAX_COMPLETION_TOKENS,
-        temperature: 1,
-        reasoning_split: true,
-      });
+        let toolSteps = 0;
 
-      const assistant = getAssistantMessage(completion);
-      const toolCalls = assistant?.tool_calls?.filter(
-        (tc) => tc.type === "function" || tc.type === undefined,
-      );
+        while (toolSteps < MAX_MINIMAX_TOOL_STEPS) {
+          const completion = await minimaxChatCompletion({
+            model,
+            messages,
+            tools: ASK_TOOL_DEFINITIONS,
+            tool_choice: "auto",
+            max_tokens: MAX_COMPLETION_TOKENS,
+            temperature: 1,
+            reasoning_split: true,
+          });
 
-      if (toolCalls && toolCalls.length > 0) {
-        appendAssistantTurn(messages, assistant ?? {});
+          const assistant = getAssistantMessage(completion);
+          const toolCalls = assistant?.tool_calls?.filter(
+            (tc) => tc.type === "function" || tc.type === undefined,
+          );
 
-        for (const tc of toolCalls) {
-          const name = tc.function?.name ?? "";
-          const args = tc.function?.arguments ?? "{}";
-          const outcome = await executeAskTool(name, args, toolContext);
-          let toolOk = true;
-          try {
-            const parsed = JSON.parse(outcome) as { ok?: boolean };
-            if (parsed && typeof parsed === "object" && parsed.ok === false) {
-              toolOk = false;
+          if (toolCalls && toolCalls.length > 0) {
+            appendAssistantTurn(messages, assistant ?? {});
+
+            let callIndex = 0;
+            for (const tc of toolCalls) {
+              const name = tc.function?.name ?? "";
+              const args = tc.function?.arguments ?? "{}";
+              const toolCallId =
+                tc.id?.trim() || `${name}-${toolSteps}-${callIndex}`;
+              callIndex += 1;
+
+              controller.enqueue(
+                encodeAskSseEvent({
+                  type: "tool",
+                  phase: "start",
+                  id: toolCallId,
+                  name,
+                }),
+              );
+
+              const outcome = await executeAskTool(name, args, toolContext);
+              let toolOk = true;
+              try {
+                const parsed = JSON.parse(outcome) as { ok?: boolean };
+                if (parsed && typeof parsed === "object" && parsed.ok === false) {
+                  toolOk = false;
+                }
+              } catch {
+                /* non-JSON tool payload */
+              }
+              logApiEvent("/api/ask", "tool_executed", {
+                tool_name: name,
+                user_id: toolContext.userId,
+                ok: toolOk,
+              });
+
+              controller.enqueue(
+                encodeAskSseEvent({
+                  type: "tool",
+                  phase: "done",
+                  id: toolCallId,
+                  name,
+                  ok: toolOk,
+                }),
+              );
+
+              messages.push({
+                role: "tool",
+                tool_call_id: tc.id?.trim() || toolCallId,
+                content: outcome,
+              });
             }
-          } catch {
-            /* non-JSON tool payload */
+
+            toolSteps += 1;
+            continue;
           }
-          logApiEvent("/api/ask", "tool_executed", {
-            tool_name: name,
-            user_id: toolContext.userId,
-            ok: toolOk,
-          });
-          messages.push({
-            role: "tool",
-            tool_call_id: tc.id,
-            content: outcome,
-          });
+
+          const rawContent = assistant?.content ?? "";
+          const content = rawContent.trim();
+          if (content.length > 0) {
+            finishAskSseWithText(controller, rawContent);
+            return;
+          }
+
+          finishAskSseWithText(
+            controller,
+            "I could not produce a text reply. Please try rephrasing your question.",
+          );
+          return;
         }
 
-        toolSteps += 1;
-        continue;
+        const fallback = await minimaxChatCompletion({
+          model,
+          messages,
+          max_tokens: MAX_COMPLETION_TOKENS,
+          temperature: 1,
+          tool_choice: "none",
+          reasoning_split: true,
+        });
+
+        const finalText = getAssistantMessage(fallback)?.content ?? "";
+        if (finalText.trim().length > 0) {
+          finishAskSseWithText(controller, finalText);
+          return;
+        }
+
+        finishAskSseWithText(
+          controller,
+          "This request needed too many tool steps. Try a simpler question or break it into parts.",
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unexpected error while asking AI.";
+        controller.enqueue(encodeAskSseEvent({ type: "error", message }));
+        controller.enqueue(encodeAskSseEvent({ type: "done" }));
+        controller.close();
       }
-
-      const content = (assistant?.content ?? "").trim();
-      if (content.length > 0) {
-        return textResponseStream(assistant?.content ?? "");
-      }
-
-      return textResponseStream(
-        "I could not produce a text reply. Please try rephrasing your question.",
-      );
-    }
-
-    const fallback = await minimaxChatCompletion({
-      model,
-      messages,
-      max_tokens: MAX_COMPLETION_TOKENS,
-      temperature: 1,
-      tool_choice: "none",
-      reasoning_split: true,
-    });
-
-    const finalText = getAssistantMessage(fallback)?.content ?? "";
-    if (finalText.trim().length > 0) {
-      return textResponseStream(finalText);
-    }
-
-    return textResponseStream(
-      "This request needed too many tool steps. Try a simpler question or break it into parts.",
-    );
+    },
+  });
 }
