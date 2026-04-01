@@ -17,9 +17,12 @@ import {
   DEEP_RESEARCH_LOADING_MESSAGE,
 } from "@/app/home/_lib/constants";
 import { createId, getThinkingPhrases } from "@/app/home/_lib/format";
+import type { AskStreamEvent } from "@/lib/ai/ask-stream-events";
+import { consumeAskSseChunk } from "@/app/home/_lib/parse-ask-sse";
 import type {
   ChatMessage,
   ChatRole,
+  ChatToolStep,
   ConversationSummary,
   DashboardDeadline,
   NotificationItem,
@@ -620,27 +623,103 @@ export default function DashboardClient({
       const decoder = new TextDecoder();
       let hasReceivedText = false;
       let fullAssistantResponse = "";
+      const contentType = response.headers.get("content-type") ?? "";
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        if (!value) continue;
-
-        const chunk = decoder.decode(value, { stream: true });
-        if (!chunk) continue;
-
-        hasReceivedText = true;
-        fullAssistantResponse += chunk;
-        assistantCharacterQueueRef.current.push(...Array.from(chunk));
-        startAssistantTypewriter();
+      function patchAssistantToolSteps(fn: (steps: ChatToolStep[]) => ChatToolStep[]) {
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessageId && message.role === "assistant"
+              ? { ...message, toolSteps: fn(message.toolSteps ?? []) }
+              : message,
+          ),
+        );
       }
 
-      const trailingChunk = decoder.decode();
-      if (trailingChunk) {
-        hasReceivedText = true;
-        fullAssistantResponse += trailingChunk;
-        assistantCharacterQueueRef.current.push(...Array.from(trailingChunk));
-        startAssistantTypewriter();
+      function handleStructuredAskEvent(event: AskStreamEvent) {
+        if (event.type === "tool") {
+          if (event.phase === "start") {
+            patchAssistantToolSteps((steps) => [
+              ...steps,
+              { id: event.id, name: event.name, status: "running" },
+            ]);
+          } else {
+            patchAssistantToolSteps((steps) => {
+              const idx = steps.findIndex((s) => s.id === event.id);
+              if (idx === -1) {
+                return [
+                  ...steps,
+                  {
+                    id: event.id,
+                    name: event.name,
+                    status: event.ok ? "done" : "error",
+                  },
+                ];
+              }
+              return steps.map((s, i) =>
+                i === idx ? { ...s, status: event.ok ? "done" : "error" } : s,
+              );
+            });
+          }
+          return;
+        }
+        if (event.type === "text" && event.delta) {
+          hasReceivedText = true;
+          fullAssistantResponse += event.delta;
+          assistantCharacterQueueRef.current.push(...Array.from(event.delta));
+          startAssistantTypewriter();
+        }
+      }
+
+      if (contentType.includes("text/event-stream")) {
+        let sseCarry = "";
+        let streamError: string | null = null;
+
+        const ingestSse = (text: string) => {
+          sseCarry = consumeAskSseChunk(sseCarry, text, (event) => {
+            if (event.type === "error") {
+              streamError = event.message;
+              return;
+            }
+            handleStructuredAskEvent(event);
+          });
+        };
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+          const piece = decoder.decode(value, { stream: true });
+          if (piece) ingestSse(piece);
+        }
+
+        const trailingSse = decoder.decode();
+        if (trailingSse) ingestSse(trailingSse);
+
+        if (streamError) {
+          throw new Error(streamError);
+        }
+      } else {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (!value) continue;
+
+          const chunk = decoder.decode(value, { stream: true });
+          if (!chunk) continue;
+
+          hasReceivedText = true;
+          fullAssistantResponse += chunk;
+          assistantCharacterQueueRef.current.push(...Array.from(chunk));
+          startAssistantTypewriter();
+        }
+
+        const trailingChunk = decoder.decode();
+        if (trailingChunk) {
+          hasReceivedText = true;
+          fullAssistantResponse += trailingChunk;
+          assistantCharacterQueueRef.current.push(...Array.from(trailingChunk));
+          startAssistantTypewriter();
+        }
       }
 
       isAssistantStreamingCompleteRef.current = true;

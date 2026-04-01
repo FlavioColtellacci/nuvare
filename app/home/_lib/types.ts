@@ -7,10 +7,18 @@ export type DashboardDeadline = {
 
 export type ChatRole = "user" | "assistant";
 
+export type ChatToolStep = {
+  id: string;
+  name: string;
+  status: "running" | "done" | "error";
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   content: string;
+  /** Populated during live SSE streams; not persisted when reloading history. */
+  toolSteps?: ChatToolStep[];
 };
 
 export type ConversationSummary = {

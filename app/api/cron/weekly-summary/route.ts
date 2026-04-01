@@ -6,7 +6,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 import type { Database } from "@/lib/database.types";
-import { logApiError } from "@/lib/log";
+import { fetchOnboardingByUserId, fetchRecentMemoryByUserIds } from "@/lib/cron/batch-fetch";
+import {
+  buildProfileEmailSectionHtml,
+  buildProfileInsightLines,
+  profileInsightNotificationBody,
+} from "@/lib/cron/profile-alerts";
+import { logApiError, logApiEvent } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -94,6 +100,12 @@ async function listAllAuthUsers(
 
 export async function GET(request: Request) {
   try {
+    logApiEvent("/api/cron/weekly-summary", "cron_start", {
+      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasResendKey: !!process.env.RESEND_API_KEY,
+    });
+
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = request.headers.get("authorization");
 
@@ -142,6 +154,11 @@ export async function GET(request: Request) {
     );
     const deadlinesByUser = groupDeadlinesByUser(deadlines);
     const userEmails = await listAllAuthUsers(supabaseAdmin);
+    const cronUserIds = [...deadlinesByUser.keys()];
+    const onboardingByUser = await fetchOnboardingByUserId(supabaseAdmin, cronUserIds);
+    const memoryByUser = await fetchRecentMemoryByUserIds(supabaseAdmin, cronUserIds, 2);
+
+    let profileNotifications = 0;
 
     for (const [userId, userDeadlines] of deadlinesByUser.entries()) {
       const recipientEmail = userEmails.get(userId);
@@ -168,6 +185,12 @@ export async function GET(request: Request) {
         continue;
       }
 
+      const profileLines = buildProfileInsightLines(
+        onboardingByUser.get(userId) ?? null,
+        memoryByUser.get(userId) ?? [],
+      );
+      const profileSectionHtml = buildProfileEmailSectionHtml(profileLines);
+
       try {
         const urgencyColor = (urgency: string) =>
           urgency === "urgent" ? "#ef4444" : urgency === "upcoming" ? "#f59e0b" : "#22c55e";
@@ -192,8 +215,9 @@ export async function GET(request: Request) {
 <body style="font-family:sans-serif;background:#f9f9f9;margin:0;padding:40px 0">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:40px">
     <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#111;margin:0 0 32px">NUVARE</p>
-    <h1 style="font-size:22px;color:#111;margin:0 0 8px">Your weekly compliance summary</h1>
-    <p style="color:#666;margin:0 0 32px">Deadlines coming up in the next 30 days</p>
+    <h1 style="font-size:22px;color:#111;margin:0 0 8px">Your weekly summary</h1>
+    <p style="color:#666;margin:0 0 24px">Deadlines in the next 30 days (for your review only—we do not file on your behalf).</p>
+    ${profileSectionHtml}
     <table style="width:100%;border-collapse:collapse">${deadlineRows}</table>
     <a href="https://nuvare.vercel.app/dashboard" style="display:inline-block;margin-top:32px;padding:12px 24px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">View Your Deadlines</a>
     <p style="margin-top:40px;font-size:12px;color:#999">Nuvare · This is informational only, not legal or financial advice.</p>
@@ -212,6 +236,22 @@ export async function GET(request: Request) {
           errors += 1;
         } else {
           sent += 1;
+          if (profileLines.length > 0) {
+            const { error: profileNotifError } = await supabaseAdmin.from("notifications").insert({
+              user_id: userId,
+              title: "Profile check-in (informational)",
+              body: profileInsightNotificationBody(profileLines),
+              type: "profile_check_in",
+              read: false,
+            });
+            if (profileNotifError) {
+              logApiError("/api/cron/weekly-summary", profileNotifError, {
+                phase: "profile_notification_insert",
+              });
+            } else {
+              profileNotifications += 1;
+            }
+          }
         }
       } catch (emailError) {
         logApiError("/api/cron/weekly-summary", emailError, { phase: "email_send" });
@@ -219,7 +259,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ sent, errors });
+    return NextResponse.json({ sent, errors, profileNotifications });
   } catch (error) {
     logApiError("/api/cron/weekly-summary", error);
     return NextResponse.json(
