@@ -38,7 +38,7 @@ Required in `.env.local` (template: `.env.example`):
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `MINIMAX_API_KEY`
 - `PERPLEXITY_API_KEY`
-- `ANTHROPIC_API_KEY` (optional, reserved — not used by current code)
+- `ANTHROPIC_API_KEY` (optional — unused by current code; reserved for a future Anthropic integration)
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_CORE_MONTHLY_PRICE_ID`
@@ -55,7 +55,7 @@ Required in `.env.local` (template: `.env.example`):
 
 **Optional rate limiting (Upstash Redis):** When both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set, `POST /api/ask` and `POST /api/vault/upload` apply per-user (or per-IP for unauthenticated ask) limits. If either variable is missing, limiting is skipped so local dev stays unchanged.
 
-**Vault PDF extraction:** `POST /api/vault/extract` uses MiniMax on extracted PDF text. Text-based PDFs work best; scanned/image-only PDFs may not yield enough text and will be marked `processing_status: error` until OCR is added.
+**Vault date extraction:** `POST /api/vault/extract` uses MiniMax only (vision for images; PDF text from `pdf-parse` plus MiniMax). If the MiniMax call fails, the document is marked `processing_status: error`. Scanned PDFs with little embedded text may complete with no extracted dates until you add OCR or another pipeline.
 
 ## Continuous integration
 
