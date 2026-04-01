@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
+import type { Database } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -62,7 +63,9 @@ function groupDeadlinesByUser(deadlines: DeadlineRow[]) {
   return grouped;
 }
 
-async function listAllAuthUsers(supabase: SupabaseClient): Promise<Map<string, string>> {
+async function listAllAuthUsers(
+  supabase: SupabaseClient<Database>,
+): Promise<Map<string, string>> {
   const userEmailMap = new Map<string, string>();
   const perPage = 1000;
   let page = 1;
