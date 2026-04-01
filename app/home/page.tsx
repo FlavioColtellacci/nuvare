@@ -68,6 +68,7 @@ export default async function HomePage() {
       userId={user.id}
       userEmail={user.email ?? "Signed-in user"}
       hasProfile={Boolean(profile)}
+      hasCompletedFullOnboarding={Boolean(profile?.onboarding_completed_at)}
       initialDeadlines={initialDeadlines}
       viewedCountries={viewedCountries}
     />

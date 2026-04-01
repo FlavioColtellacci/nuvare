@@ -13,6 +13,7 @@ export function OnboardingAuthPanel({
   isSignInMode,
   isAuthLoading,
   isFinalizing,
+  isProgressiveMode,
   errorMessage,
   onEmailChange,
   onPasswordChange,
@@ -26,6 +27,7 @@ export function OnboardingAuthPanel({
   isSignInMode: boolean;
   isAuthLoading: boolean;
   isFinalizing: boolean;
+  isProgressiveMode: boolean;
   errorMessage: string;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
@@ -39,7 +41,11 @@ export function OnboardingAuthPanel({
       <div className="space-y-9">
         <SectionTitle
           title="Your intelligence layer is ready."
-          subtitle="Create your account to access your personalised dashboard."
+          subtitle={
+            isProgressiveMode
+              ? "Create your account to unlock your dashboard now. You can finish the deeper profile steps from your dashboard when convenient."
+              : "Create your account to access your personalised dashboard."
+          }
         />
         <div className="space-y-4">
           <Button

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -40,12 +41,14 @@ export default function DashboardClient({
   userId,
   userEmail,
   hasProfile,
+  hasCompletedFullOnboarding,
   initialDeadlines,
   viewedCountries,
 }: {
   userId: string;
   userEmail: string;
   hasProfile: boolean;
+  hasCompletedFullOnboarding: boolean;
   initialDeadlines: DashboardDeadline[];
   viewedCountries: ViewedCountry[];
 }) {
@@ -140,6 +143,7 @@ export default function DashboardClient({
       : subscriptionTier === "core"
         ? "You're now on Nuvare Core. Welcome."
         : "Welcome to Nuvare.";
+  const showOnboardingNudge = hasProfile && !hasCompletedFullOnboarding;
 
   function isNearFeedBottom(element: HTMLDivElement, threshold = 100) {
     const distanceFromBottom = element.scrollHeight - element.scrollTop - element.clientHeight;
@@ -1091,6 +1095,20 @@ export default function DashboardClient({
                 Your profile is incomplete. Answers may be less personalized until onboarding is
                 finished.
               </p>
+            ) : null}
+            {showOnboardingNudge ? (
+              <div className="mb-4 rounded-lg border border-white/15 bg-[#111111] px-4 py-3 text-sm text-white/80">
+                <p>
+                  You have unlocked your dashboard. Complete the remaining onboarding steps to
+                  improve profile precision and recommendations.
+                </p>
+                <Link
+                  href="/onboarding?phase=extended"
+                  className="mt-2 inline-block text-sm text-white underline underline-offset-4 transition-colors hover:text-white/70"
+                >
+                  Resume profile setup
+                </Link>
+              </div>
             ) : null}
             {showSubscriptionBanner ? (
               <button
