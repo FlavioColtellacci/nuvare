@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { logApiError } from "@/lib/log";
+import { enforceVaultUploadRateLimit } from "@/lib/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,6 +23,11 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const rateLimited = await enforceVaultUploadRateLimit(user.id);
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const formData = await request.formData();
@@ -54,6 +61,7 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
+      logApiError("/api/vault/upload", uploadError, { phase: "storage_upload" });
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
@@ -71,6 +79,9 @@ export async function POST(request: Request) {
       .single();
 
     if (insertError || !document) {
+      if (insertError) {
+        logApiError("/api/vault/upload", insertError, { phase: "documents_insert" });
+      }
       await adminSupabase.storage.from("vault").remove([storagePath]);
       return NextResponse.json(
         { error: insertError?.message ?? "Unable to save document." },
@@ -89,6 +100,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, document });
   } catch (error) {
+    logApiError("/api/vault/upload", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unexpected upload error." },
       { status: 500 },

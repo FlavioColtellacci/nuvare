@@ -9,6 +9,8 @@ import {
 import { buildAskSystemPrompt } from "@/lib/ai/prompts";
 import { fetchPerplexityRegulatoryContext } from "@/lib/ai/perplexity";
 import type { AskPayload, OnboardingAnswers } from "@/lib/ai/types";
+import { logApiError } from "@/lib/log";
+import { enforceAskRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
@@ -44,6 +46,11 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    const rateLimited = await enforceAskRateLimit(request, user?.id ?? null);
+    if (rateLimited) {
+      return rateLimited;
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -88,6 +95,7 @@ export async function POST(request: Request) {
           }
           controller.close();
         } catch (streamError) {
+          logApiError("/api/ask", streamError, { phase: "stream" });
           controller.error(streamError);
         }
       },
@@ -104,6 +112,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    logApiError("/api/ask", error);
     return NextResponse.json(
       {
         error:

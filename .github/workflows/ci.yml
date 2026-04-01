@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    env:
+      # Placeholders so `next build` can compile; replace in Vercel / `.env.local` for real runs.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      STRIPE_CORE_MONTHLY_PRICE_ID: price_placeholder_monthly
+      STRIPE_CORE_YEARLY_PRICE_ID: price_placeholder_yearly
+      STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID: price_placeholder_pro_m
+      STRIPE_PROFESSIONAL_YEARLY_PRICE_ID: price_placeholder_pro_y
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

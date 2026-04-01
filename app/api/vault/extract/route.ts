@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { logApiError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -156,7 +157,8 @@ export async function POST(request: Request) {
       if (claudeResponse.ok) {
         claudePayload = (await claudeResponse.json()) as ClaudeResponse;
       }
-    } catch {
+    } catch (claudeErr) {
+      logApiError("/api/vault/extract", claudeErr, { phase: "claude_request" });
       await markDocumentAsError(documentId);
       return NextResponse.json({ success: true }, { status: 200 });
     }
@@ -184,7 +186,8 @@ export async function POST(request: Request) {
       .eq("id", documentId);
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch {
+  } catch (error) {
+    logApiError("/api/vault/extract", error);
     return NextResponse.json({ success: true }, { status: 200 });
   }
 }

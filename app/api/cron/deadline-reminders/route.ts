@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 import type { Database } from "@/lib/database.types";
+import { logApiError, logApiEvent } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -97,12 +98,11 @@ async function listAllAuthUsers(
 
 export async function GET(request: Request) {
   try {
-    console.log('Cron started')
-    console.log('ENV check:', {
+    logApiEvent("/api/cron/deadline-reminders", "cron_start", {
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       hasResendKey: !!process.env.RESEND_API_KEY,
-    })
+    });
 
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = request.headers.get("authorization");
@@ -236,23 +236,28 @@ export async function GET(request: Request) {
             });
 
             if (notificationError) {
-              console.error('Notification insert error:', notificationError);
+              logApiError("/api/cron/deadline-reminders", notificationError, {
+                phase: "notification_insert",
+              });
             }
           }
         }
       } catch (emailError) {
-        console.error('Email send error:', emailError)
-        errors++
+        logApiError("/api/cron/deadline-reminders", emailError, { phase: "email_send" });
+        errors++;
       }
     }
 
     return NextResponse.json({ sent, errors });
   } catch (error) {
-    console.error('Cron error:', error)
-    return NextResponse.json({ 
-      error: true, 
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    }, { status: 500 })
+    logApiError("/api/cron/deadline-reminders", error);
+    return NextResponse.json(
+      {
+        error: true,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

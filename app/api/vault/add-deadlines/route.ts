@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { logApiError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 
 type ExtractedDate = {
@@ -48,6 +49,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (documentError) {
+      logApiError("/api/vault/add-deadlines", documentError, { phase: "document_read" });
       return NextResponse.json({ error: documentError.message }, { status: 500 });
     }
     if (!document) {
@@ -71,11 +73,13 @@ export async function POST(request: Request) {
     const { error: insertError } = await supabase.from("deadlines").insert(deadlineRows);
 
     if (insertError) {
+      logApiError("/api/vault/add-deadlines", insertError, { phase: "deadlines_insert" });
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, added: deadlineRows.length });
   } catch (error) {
+    logApiError("/api/vault/add-deadlines", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to add deadlines." },
       { status: 500 },

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import DashboardClient, { type DashboardDeadline } from "@/app/home/home-client";
+import DashboardClient from "@/app/home/home-client";
+import type { DashboardDeadline } from "@/app/home/_lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type ViewedCountry = {
