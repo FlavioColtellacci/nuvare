@@ -127,6 +127,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  :where(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      [role="button"],
+      [tabindex]:not([tabindex="-1"])
+    ):focus-visible {
+    @apply outline-none ring-2 ring-white/45 ring-offset-2 ring-offset-black;
+  }
   button {
     @apply cursor-pointer;
   }
@@ -181,4 +192,22 @@
 
 .question-fade-in {
   animation: questionFadeIn 420ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .onboarding-glow,
+  .question-fade-in,
+  .animate-pulse {
+    animation: none !important;
+    transform: none !important;
+  }
 }

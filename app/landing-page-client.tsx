@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { MeshGradient } from "@paper-design/shaders-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Disclaimer from "@/components/Disclaimer";
@@ -20,8 +20,12 @@ export default function LandingPageClient() {
   const router = useRouter();
   const [isFaqOpen, setIsFaqOpen] = useState(false);
   const [sparkles, setSparkles] = useState<Sparkle[]>([]);
+  const shouldReduceMotion = useReducedMotion();
   const sparkleId = useRef(0);
   const lastSparkleAt = useRef(0);
+  const faqCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const faqModalRef = useRef<HTMLDivElement>(null);
+  const faqTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isFaqOpen) {
@@ -34,7 +38,48 @@ export default function LandingPageClient() {
     };
   }, [isFaqOpen]);
 
+  useEffect(() => {
+    if (!isFaqOpen) return;
+
+    faqCloseButtonRef.current?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsFaqOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab" || !faqModalRef.current) return;
+
+      const focusableElements = faqModalRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusableElements.length === 0) return;
+
+      const first = focusableElements[0];
+      const last = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      faqTriggerRef.current?.focus();
+    };
+  }, [isFaqOpen]);
+
   const createSparkle = (event: MouseEvent<HTMLDivElement>) => {
+    if (shouldReduceMotion) return;
+
     const now = Date.now();
     if (now - lastSparkleAt.current < 70) return;
     lastSparkleAt.current = now;
@@ -63,19 +108,19 @@ export default function LandingPageClient() {
         <MeshGradient
           className="absolute inset-0 h-full w-full"
           colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
-          speed={0.2}
+          speed={shouldReduceMotion ? 0 : 0.2}
         />
         <MeshGradient
           className="absolute inset-0 h-full w-full opacity-15"
           colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
-          speed={0.15}
+          speed={shouldReduceMotion ? 0 : 0.15}
         />
       </div>
 
       <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
         <div className="grid grid-cols-1 items-center gap-5 md:grid-cols-3">
           <motion.div
-            whileHover={{ scale: 1.05 }}
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
@@ -94,9 +139,16 @@ export default function LandingPageClient() {
                     height: sparkle.size,
                   }}
                   initial={{ opacity: 0, scale: 0.3, x: "-50%", y: "-50%" }}
-                  animate={{ opacity: [0, 1, 0], scale: [0.4, 1, 0.2], y: "-150%" }}
+                  animate={
+                    shouldReduceMotion
+                      ? { opacity: 0 }
+                      : { opacity: [0, 1, 0], scale: [0.4, 1, 0.2], y: "-150%" }
+                  }
                   exit={{ opacity: 0 }}
-                  transition={{ duration: sparkle.duration, ease: "easeOut" }}
+                  transition={{
+                    duration: shouldReduceMotion ? 0 : sparkle.duration,
+                    ease: "easeOut",
+                  }}
                 />
               ))}
             </AnimatePresence>
@@ -116,8 +168,12 @@ export default function LandingPageClient() {
               Pricing
             </Link>
             <button
+              ref={faqTriggerRef}
               type="button"
               onClick={() => setIsFaqOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={isFaqOpen}
+              aria-controls="marketing-faq-dialog"
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
             >
               FAQ
@@ -143,19 +199,36 @@ export default function LandingPageClient() {
               <button
                 type="button"
                 onClick={() => router.push("/login")}
-                className="relative z-20 rounded-full border border-white/20 bg-white px-5 py-2 text-xs font-medium text-black transition-transform duration-300 hover:scale-[1.03]"
+                className="relative z-20 rounded-full border border-white/20 bg-white px-5 py-2 text-xs font-medium text-black transition-transform duration-300 hover:scale-[1.03] motion-reduce:transform-none"
               >
                 Login
               </button>
               <motion.span
                 className="absolute -left-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={{ x: [0, 8, 0], y: ["-50%", "-70%", "-50%"] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                animate={
+                  shouldReduceMotion
+                    ? { x: 0, y: "-50%" }
+                    : { x: [0, 8, 0], y: ["-50%", "-70%", "-50%"] }
+                }
+                transition={{
+                  duration: shouldReduceMotion ? 0 : 2.2,
+                  repeat: shouldReduceMotion ? 0 : Infinity,
+                  ease: "easeInOut",
+                }}
               />
               <motion.span
                 className="absolute -right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={{ x: [0, -8, 0], y: ["-50%", "-30%", "-50%"] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                animate={
+                  shouldReduceMotion
+                    ? { x: 0, y: "-50%" }
+                    : { x: [0, -8, 0], y: ["-50%", "-30%", "-50%"] }
+                }
+                transition={{
+                  duration: shouldReduceMotion ? 0 : 2,
+                  repeat: shouldReduceMotion ? 0 : Infinity,
+                  ease: "easeInOut",
+                  delay: shouldReduceMotion ? 0 : 0.2,
+                }}
               />
             </div>
           </div>
@@ -191,8 +264,8 @@ export default function LandingPageClient() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <motion.button
               type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
               onClick={() => router.push("/onboarding")}
               className="rounded-full border border-white bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90"
             >
@@ -200,8 +273,8 @@ export default function LandingPageClient() {
             </motion.button>
             <motion.button
               type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
               onClick={() => router.push("/pricing")}
               className="rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-light text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
             >
@@ -222,17 +295,27 @@ export default function LandingPageClient() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
             onClick={() => setIsFaqOpen(false)}
           >
             <motion.div
+              id="marketing-faq-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="marketing-faq-title"
+              ref={faqModalRef}
               className="relative w-full max-w-lg rounded-2xl border border-white/12 bg-[#0b0b0b] p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.98 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
+              transition={{
+                duration: shouldReduceMotion ? 0 : 0.22,
+                ease: "easeOut",
+              }}
               onClick={(event) => event.stopPropagation()}
             >
               <button
+                ref={faqCloseButtonRef}
                 type="button"
                 onClick={() => setIsFaqOpen(false)}
                 className="absolute right-4 top-4 rounded-full border border-white/15 px-2 py-1 text-xs text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
@@ -240,7 +323,10 @@ export default function LandingPageClient() {
               >
                 X
               </button>
-              <h2 className="font-editorial text-3xl text-[color:var(--marketing-text-strong)]">
+              <h2
+                id="marketing-faq-title"
+                className="font-editorial text-3xl text-[color:var(--marketing-text-strong)]"
+              >
                 Frequently Asked Questions
               </h2>
               <div className="mt-6">

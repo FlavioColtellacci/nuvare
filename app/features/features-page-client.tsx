@@ -1,7 +1,7 @@
 "use client";
 
 import { MeshGradient } from "@paper-design/shaders-react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   CalendarClock,
   MessageSquare,
@@ -53,18 +53,20 @@ const features: Feature[] = [
 ];
 
 export default function FeaturesPageClient() {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-black text-[color:var(--marketing-text-strong)] md:overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <MeshGradient
           className="absolute inset-0 h-full w-full"
           colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
-          speed={0.2}
+          speed={shouldReduceMotion ? 0 : 0.2}
         />
         <MeshGradient
           className="absolute inset-0 h-full w-full opacity-15"
           colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
-          speed={0.15}
+          speed={shouldReduceMotion ? 0 : 0.15}
         />
       </div>
 
@@ -101,9 +103,15 @@ export default function FeaturesPageClient() {
                 <motion.div
                   key={feature.title}
                   className="rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6"
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={
+                    shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }
+                  }
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: index * 0.1, ease: "easeOut" }}
+                  transition={{
+                    duration: shouldReduceMotion ? 0 : 0.35,
+                    delay: shouldReduceMotion ? 0 : index * 0.1,
+                    ease: "easeOut",
+                  }}
                 >
                   <Icon className="mb-3 text-[color:var(--marketing-text-base)]" size={18} />
                   <h2 className="mb-2 text-sm font-medium text-[color:var(--marketing-text-strong)]">
