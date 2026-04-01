@@ -5,8 +5,8 @@ export type AskResearchMode = {
   /** True when prefetch used `sonar-deep-research` (client deep research toggle). */
   deepResearchPrefetch?: boolean;
   /**
-   * MiniMax orchestration: mention deadline, document, and research tools in the system prompt.
-   * Anthropic `/api/ask` only exposes `research_regulations` today—leave false there.
+   * MiniMax `/api/ask` orchestration: mention deadline, document, and research tools in the system prompt.
+   * Leave false for prompts that should not reference those tools.
    */
   includeDataAndDocTools?: boolean;
 };

@@ -10,7 +10,7 @@ It includes onboarding, AI guidance, deadline tracking, country intelligence, do
 - Tailwind CSS
 - Supabase (auth + data)
 - Stripe (checkout + webhooks)
-- Anthropic + Perplexity integrations
+- MiniMax + Perplexity integrations
 
 ## Getting started
 
@@ -36,8 +36,9 @@ Required in `.env.local` (template: `.env.example`):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `ANTHROPIC_API_KEY`
+- `MINIMAX_API_KEY`
 - `PERPLEXITY_API_KEY`
+- `ANTHROPIC_API_KEY` (optional, reserved — not used by current code)
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_CORE_MONTHLY_PRICE_ID`
@@ -53,6 +54,8 @@ Required in `.env.local` (template: `.env.example`):
 **Stripe publishable key:** `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is reserved for future client-side Stripe.js / Elements. Checkout today uses server-side `STRIPE_SECRET_KEY` only.
 
 **Optional rate limiting (Upstash Redis):** When both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set, `POST /api/ask` and `POST /api/vault/upload` apply per-user (or per-IP for unauthenticated ask) limits. If either variable is missing, limiting is skipped so local dev stays unchanged.
+
+**Vault PDF extraction:** `POST /api/vault/extract` uses MiniMax on extracted PDF text. Text-based PDFs work best; scanned/image-only PDFs may not yield enough text and will be marked `processing_status: error` until OCR is added.
 
 ## Continuous integration
 

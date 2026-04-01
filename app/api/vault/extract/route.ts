@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+import {
+  extractPdfTextForVault,
+  minimaxVaultExtractJson,
+} from "@/lib/ai/minimax-vault-extract";
 import { logApiError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -7,6 +11,9 @@ export const runtime = "nodejs";
 
 const EXTRACTION_SYSTEM_PROMPT =
   "You are a document analysis assistant. Extract all important dates and deadlines from the provided document. Return a JSON array only, with no explanation or extra text. Each item must have exactly these fields: { label: string, date: string (YYYY-MM-DD format), notes: string }. Examples of dates to extract: passport expiry date, visa expiry date, permit renewal date, tax filing deadline, insurance renewal date, certificate expiry. If no dates can be found, return an empty array [].";
+
+/** Prefer native PDF analysis when the PDF has little or no embedded text (e.g. scans). */
+const MIN_PDF_TEXT_CHARS_FOR_MINIMAX_TEXT_MODE = 80;
 
 type ExtractPayload = {
   documentId?: string;
@@ -56,7 +63,7 @@ async function markDocumentAsError(documentId: string) {
     .eq("id", documentId);
 }
 
-function cleanClaudeJsonOutput(rawText: string) {
+function cleanModelJsonOutput(rawText: string) {
   const trimmed = rawText.trim();
   if (!trimmed.startsWith("```")) return trimmed;
 
@@ -66,13 +73,65 @@ function cleanClaudeJsonOutput(rawText: string) {
     .trim();
 }
 
+async function extractWithAnthropic(params: {
+  apiKey: string;
+  attachmentBlock: Record<string, unknown>;
+}): Promise<string> {
+  const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": params.apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "pdfs-2024-09-25",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 2048,
+      system: EXTRACTION_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: [
+            params.attachmentBlock,
+            {
+              type: "text",
+              text: "Extract all important dates and deadlines from this document.",
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!claudeResponse.ok) {
+    throw new Error(`Anthropic vault extract HTTP ${claudeResponse.status}`);
+  }
+
+  const claudePayload = (await claudeResponse.json()) as ClaudeResponse;
+  return (claudePayload?.content ?? [])
+    .filter((block) => block.type === "text" && typeof block.text === "string")
+    .map((block) => block.text ?? "")
+    .join("");
+}
+
 export async function POST(request: Request) {
   let documentId: string | null = null;
 
   try {
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicApiKey) {
-      return NextResponse.json({ error: "Missing ANTHROPIC_API_KEY." }, { status: 500 });
+    const minimaxKey = process.env.MINIMAX_API_KEY?.trim();
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY?.trim();
+    const hasMinimax = Boolean(minimaxKey);
+    const hasAnthropic = Boolean(anthropicApiKey);
+
+    if (!hasMinimax && !hasAnthropic) {
+      return NextResponse.json(
+        {
+          error:
+            "Configure MINIMAX_API_KEY and/or ANTHROPIC_API_KEY for vault date extraction.",
+        },
+        { status: 500 },
+      );
     }
 
     const payload = (await request.json()) as ExtractPayload;
@@ -125,49 +184,88 @@ export async function POST(request: Request) {
           },
         };
 
-    let claudePayload: ClaudeResponse | null = null;
-    try {
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "pdfs-2024-09-25",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2048,
-          system: EXTRACTION_SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: [
-                attachmentBlock,
-                {
-                  type: "text",
-                  text: "Extract all important dates and deadlines from this document.",
-                },
-              ],
-            },
-          ],
-        }),
-      });
+    const userInstruction = "Extract all important dates and deadlines from this document.";
 
-      if (claudeResponse.ok) {
-        claudePayload = (await claudeResponse.json()) as ClaudeResponse;
+    let textOutput = "";
+
+    try {
+      if (hasMinimax) {
+        if (isPdf) {
+          const pdfText = await extractPdfTextForVault(fileBytes);
+          const trimmedPdf = pdfText.trim();
+          if (
+            trimmedPdf.length < MIN_PDF_TEXT_CHARS_FOR_MINIMAX_TEXT_MODE &&
+            hasAnthropic &&
+            anthropicApiKey
+          ) {
+            textOutput = await extractWithAnthropic({
+              apiKey: anthropicApiKey,
+              attachmentBlock,
+            });
+          } else {
+            try {
+              const documentText =
+                trimmedPdf.length >= MIN_PDF_TEXT_CHARS_FOR_MINIMAX_TEXT_MODE
+                  ? pdfText
+                  : "(The PDF contained no embedded text or too little text; it may be scanned or image-only. If so, return [].)";
+              textOutput = await minimaxVaultExtractJson({
+                systemPrompt: EXTRACTION_SYSTEM_PROMPT,
+                userInstruction,
+                mode: "text",
+                documentText,
+              });
+            } catch (minimaxPdfErr) {
+              logApiError("/api/vault/extract", minimaxPdfErr, {
+                phase: "minimax_pdf",
+                documentId,
+              });
+              if (hasAnthropic && anthropicApiKey) {
+                textOutput = await extractWithAnthropic({
+                  apiKey: anthropicApiKey,
+                  attachmentBlock,
+                });
+              } else {
+                throw minimaxPdfErr;
+              }
+            }
+          }
+        } else {
+          try {
+            textOutput = await minimaxVaultExtractJson({
+              systemPrompt: EXTRACTION_SYSTEM_PROMPT,
+              userInstruction,
+              mode: "image",
+              mediaType,
+              base64Data: base64Document,
+            });
+          } catch (minimaxImgErr) {
+            logApiError("/api/vault/extract", minimaxImgErr, {
+              phase: "minimax_image",
+              documentId,
+            });
+            if (hasAnthropic && anthropicApiKey) {
+              textOutput = await extractWithAnthropic({
+                apiKey: anthropicApiKey,
+                attachmentBlock,
+              });
+            } else {
+              throw minimaxImgErr;
+            }
+          }
+        }
+      } else if (hasAnthropic && anthropicApiKey) {
+        textOutput = await extractWithAnthropic({
+          apiKey: anthropicApiKey,
+          attachmentBlock,
+        });
       }
-    } catch (claudeErr) {
-      logApiError("/api/vault/extract", claudeErr, { phase: "claude_request" });
+    } catch (extractErr) {
+      logApiError("/api/vault/extract", extractErr, { phase: "extract" });
       await markDocumentAsError(documentId);
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const textOutput = (claudePayload?.content ?? [])
-      .filter((block) => block.type === "text" && typeof block.text === "string")
-      .map((block) => block.text ?? "")
-      .join("");
-    const cleanedJson = cleanClaudeJsonOutput(textOutput);
+    const cleanedJson = cleanModelJsonOutput(textOutput);
 
     let extractedDates: ExtractedDate[] = [];
     try {
