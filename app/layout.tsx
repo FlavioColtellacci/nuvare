@@ -18,8 +18,13 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Nuvare",
-  description: "Nuvare onboarding",
+  metadataBase: new URL("https://www.nuvare.app"),
+  title: {
+    default: "Nuvare",
+    template: "%s | Nuvare",
+  },
+  description:
+    "Nuvare helps internationally mobile professionals stay ahead of cross-border tax, visa, and compliance obligations.",
   icons: {
     icon: "/nuvare_favicon.png",
     apple: "/nuvare_favicon.png",

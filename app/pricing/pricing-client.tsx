@@ -69,12 +69,14 @@ export default function PricingClient({
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-4 py-16 text-white sm:px-6 md:px-10">
+    <main className="min-h-screen overflow-x-hidden bg-black px-4 py-16 text-[color:var(--marketing-text-strong)] sm:px-6 md:px-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
-        <h1 className="text-center font-editorial text-5xl text-white md:text-6xl">
+        <h1 className="text-center font-editorial text-5xl text-[color:var(--marketing-text-strong)] md:text-6xl">
           Simple, transparent pricing.
         </h1>
-        <p className="mt-4 text-center text-sm text-white/55">No hidden fees. Cancel anytime.</p>
+        <p className="mt-4 text-center text-sm text-[color:var(--marketing-text-muted)]">
+          No hidden fees. Cancel anytime.
+        </p>
 
         <div className="mt-8 flex w-full max-w-md rounded-full border border-white/20 bg-[#0d0d0d] p-1">
           <button
@@ -82,7 +84,9 @@ export default function PricingClient({
             onClick={() => setBillingInterval("monthly")}
             className={cn(
               "flex-1 cursor-pointer rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
-              billingInterval === "monthly" ? "bg-white text-black" : "text-white/70 hover:text-white",
+              billingInterval === "monthly"
+                ? "bg-white text-black"
+                : "text-[color:var(--marketing-text-base)] hover:text-[color:var(--marketing-text-strong)]",
             )}
           >
             Monthly
@@ -92,7 +96,9 @@ export default function PricingClient({
             onClick={() => setBillingInterval("yearly")}
             className={cn(
               "inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
-              billingInterval === "yearly" ? "bg-white text-black" : "text-white/70 hover:text-white",
+              billingInterval === "yearly"
+                ? "bg-white text-black"
+                : "text-[color:var(--marketing-text-base)] hover:text-[color:var(--marketing-text-strong)]",
             )}
           >
             <span>Yearly</span>
@@ -104,19 +110,21 @@ export default function PricingClient({
 
         <div className="mt-12 grid w-full max-w-4xl gap-6 md:grid-cols-2">
           <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
-            <p className="text-xs tracking-[0.2em] text-white/60">CORE</p>
+            <p className="text-xs tracking-[0.2em] text-[color:var(--marketing-text-muted)]">CORE</p>
             <div className="mt-5">
-              <p className="text-4xl text-white">
+              <p className="text-4xl text-[color:var(--marketing-text-strong)]">
                 {billingInterval === "monthly" ? "$99" : "$990"}
-                <span className="ml-1 text-lg text-white/70">
+                <span className="ml-1 text-lg text-[color:var(--marketing-text-base)]">
                   {billingInterval === "monthly" ? "/month" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
-                <p className="mt-1 text-xs text-white/55">$82/mo, billed annually</p>
+                <p className="mt-1 text-xs text-[color:var(--marketing-text-muted)]">
+                  $82/mo, billed annually
+                </p>
               ) : null}
             </div>
-            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
+            <ul className="mt-6 flex-1 space-y-2 text-sm text-[color:var(--marketing-text-base)]">
               <li>✓ Unlimited queries</li>
               <li>✓ Deadline dashboard</li>
               <li>✓ Advanced AI reasoning with live research</li>
@@ -133,22 +141,26 @@ export default function PricingClient({
           </article>
 
           <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/45 bg-[#101010] p-7">
-            <p className="inline-flex rounded-full border border-white/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/80">
+            <p className="inline-flex rounded-full border border-white/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-[color:var(--marketing-text-base)]">
               Most popular
             </p>
-            <p className="mt-4 text-xs tracking-[0.2em] text-white/60">PROFESSIONAL</p>
+            <p className="mt-4 text-xs tracking-[0.2em] text-[color:var(--marketing-text-muted)]">
+              PROFESSIONAL
+            </p>
             <div className="mt-5">
-              <p className="text-4xl text-white">
+              <p className="text-4xl text-[color:var(--marketing-text-strong)]">
                 {billingInterval === "monthly" ? "$199" : "$1,990"}
-                <span className="ml-1 text-lg text-white/70">
+                <span className="ml-1 text-lg text-[color:var(--marketing-text-base)]">
                   {billingInterval === "monthly" ? "/month" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
-                <p className="mt-1 text-xs text-white/55">$166/mo, billed annually</p>
+                <p className="mt-1 text-xs text-[color:var(--marketing-text-muted)]">
+                  $166/mo, billed annually
+                </p>
               ) : null}
             </div>
-            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
+            <ul className="mt-6 flex-1 space-y-2 text-sm text-[color:var(--marketing-text-base)]">
               <li>✓ Everything in Core</li>
               <li>✓ 20 Deep Research queries per month</li>
               <li>✓ Document Vault (coming soon)</li>
@@ -168,7 +180,7 @@ export default function PricingClient({
         </div>
 
         {errorMessage ? <p className="mt-5 text-sm text-red-300">{errorMessage}</p> : null}
-        <p className="mt-8 text-center text-sm text-white/50">
+        <p className="mt-8 text-center text-sm text-[color:var(--marketing-text-muted)]">
           For enquiries, contact us at hello@nuvare.app
         </p>
       </div>
