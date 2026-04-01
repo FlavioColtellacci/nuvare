@@ -241,15 +241,18 @@ export default function LandingPageClient() {
         </div>
       </header>
 
-      <section className="relative z-20 flex-1" id="features">
-        <div className="absolute bottom-20 left-6 max-w-2xl md:bottom-24 md:left-10">
+      <section
+        className="relative z-20 flex flex-1 flex-col px-6 pb-10 pt-4 md:px-10 md:pb-14 md:pt-6"
+        id="features"
+      >
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm">
             <span>🌐</span>
             <span>Private intelligence for the internationally mobile</span>
             <span className="h-px w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
 
-          <div className="mt-6 space-y-1">
+          <div className="mt-8 space-y-1">
             <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
               The private
             </h1>
@@ -275,7 +278,7 @@ export default function LandingPageClient() {
             </Link>
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <motion.button
               type="button"
               whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
