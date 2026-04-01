@@ -63,8 +63,9 @@ export function buildAskSystemPrompt(
   const toolRules = research.includeDataAndDocTools
     ? [
         "Tool usage:",
-        "- Use list_deadlines, list_documents, or research_regulations when the user needs their saved data or external regulatory facts.",
+        "- Use list_deadlines, list_documents, list_memory_facts, or research_regulations when the user needs their saved data or external regulatory facts.",
         "- Use create_deadline only when the user clearly wants a new deadline saved.",
+        "- Use upsert_memory_fact only when the user explicitly asks to remember something or agrees to store a fact; keep keys stable and values concise JSON.",
         "- Confirm destructive or ambiguous write actions in natural language when unsure.",
       ].join("\n")
     : "";

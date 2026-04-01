@@ -1,8 +1,10 @@
 /**
  * Generated from Supabase project "nuvare" (ref: pbjvdzruzamvjhimyrko).
  *
- * Regenerate locally:
+ * Regenerate locally (after `supabase login` or SUPABASE_ACCESS_TOKEN):
  *   npx supabase gen types typescript --project-id pbjvdzruzamvjhimyrko > lib/database.types.ts
+ *
+ * Table `user_agent_memory` must exist in the project (see supabase/migrations/20260401000000_user_agent_memory.sql).
  */
 export type Json =
   | string
@@ -190,6 +192,33 @@ export type Database = {
           title?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_agent_memory: {
+        Row: {
+          id: string
+          key: string
+          source: string
+          updated_at: string
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          source: string
+          updated_at?: string
+          user_id: string
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+          value?: Json
         }
         Relationships: []
       }

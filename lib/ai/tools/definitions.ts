@@ -87,4 +87,51 @@ export const ASK_TOOL_DEFINITIONS = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "list_memory_facts",
+      description:
+        "List stored long-term memory facts for the signed-in user (key, value, source, updated_at). Read-only. Use to recall preferences or facts the user asked to remember.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: {
+            type: "number",
+            description: "Max rows to return (default 40, max 80), most recently updated first.",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "upsert_memory_fact",
+      description:
+        "Save or update one long-term memory fact (key + JSON value). Only when the user clearly wants something remembered. Max 200 distinct keys per user; values must stay small (under ~16KB). Use source: chat for conversational memories, document for vault-derived facts, onboarding for profile-aligned facts.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: {
+            type: "string",
+            description:
+              "Stable identifier, 1–200 characters (e.g. tax_residency_preference, preferred_filing_currency).",
+          },
+          value: {
+            type: "object",
+            description:
+              "JSON object for the fact payload (use scalar fields inside). Keep it small; max ~16KB when serialized.",
+            additionalProperties: true,
+          },
+          source: {
+            type: "string",
+            enum: ["onboarding", "chat", "document"],
+            description: "Where this fact came from.",
+          },
+        },
+        required: ["key", "value", "source"],
+      },
+    },
+  },
 ];
