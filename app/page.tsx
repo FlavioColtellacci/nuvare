@@ -58,7 +58,7 @@ export default function Home() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-white">
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-[color:var(--marketing-text-strong)]">
       <div className="pointer-events-none absolute inset-0">
         <MeshGradient
           className="absolute inset-0 h-full w-full"
@@ -79,7 +79,7 @@ export default function Home() {
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
-            <span className="font-light text-xl tracking-[0.25em] text-white">
+            <span className="font-light text-xl tracking-[0.25em] text-[color:var(--marketing-text-strong)]">
               NUVARE
             </span>
             <AnimatePresence>
@@ -105,20 +105,20 @@ export default function Home() {
           <nav className="flex items-center justify-center gap-2">
             <Link
               href="/features"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
             >
               Features
             </Link>
             <Link
               href="/pricing"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
             >
               Pricing
             </Link>
             <button
               type="button"
               onClick={() => setIsFaqOpen(true)}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
+              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
             >
               FAQ
             </button>
@@ -164,7 +164,7 @@ export default function Home() {
 
       <section className="relative z-20 flex-1" id="features">
         <div className="absolute bottom-20 left-6 max-w-2xl md:bottom-24 md:left-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm">
             <span>🌐</span>
             <span>Private intelligence for the internationally mobile</span>
             <span className="h-px w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -174,15 +174,15 @@ export default function Home() {
             <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
               The private
             </h1>
-            <h1 className="text-5xl font-black leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] md:text-7xl">
+            <h1 className="text-5xl font-black leading-none text-[color:var(--marketing-text-strong)] drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] md:text-7xl">
               intelligence
             </h1>
-            <h1 className="text-5xl font-light italic leading-tight text-white/80 md:text-7xl">
+            <h1 className="text-5xl font-light italic leading-tight text-[color:var(--marketing-text-base)] md:text-7xl">
               layer.
             </h1>
           </div>
 
-          <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-white/65 md:text-base">
+          <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-[color:var(--marketing-text-muted)] md:text-base">
             Nuvare watches your compliance and financial obligations across every
             country you live, work, and invest in, so nothing falls through the
             cracks.
@@ -193,19 +193,19 @@ export default function Home() {
               type="button"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => router.push("/pricing")}
-              className="rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-light text-white transition-colors hover:bg-white/10"
+              onClick={() => router.push("/onboarding")}
+              className="rounded-full border border-white bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90"
             >
-              View Pricing
+              Get Started
             </motion.button>
             <motion.button
               type="button"
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.96 }}
-              onClick={() => router.push("/onboarding")}
-              className="rounded-full border border-white bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90"
+              onClick={() => router.push("/pricing")}
+              className="rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-light text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
             >
-              Get Started
+              View Pricing
             </motion.button>
           </div>
         </div>
@@ -236,44 +236,56 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setIsFaqOpen(false)}
-                className="absolute right-4 top-4 rounded-full border border-white/15 px-2 py-1 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                className="absolute right-4 top-4 rounded-full border border-white/15 px-2 py-1 text-xs text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
                 aria-label="Close FAQ modal"
               >
                 X
               </button>
-              <h2 className="font-editorial text-3xl text-white">Frequently Asked Questions</h2>
+              <h2 className="font-editorial text-3xl text-[color:var(--marketing-text-strong)]">
+                Frequently Asked Questions
+              </h2>
               <div className="mt-6">
-                <p className="text-sm font-medium text-white">What is Nuvare?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
+                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  What is Nuvare?
+                </p>
+                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
                   Nuvare is a proactive compliance and financial intelligence tool for
                   internationally mobile professionals. It tracks your obligations
                   across countries, visas, tax deadlines, permits, foreign asset
                   declarations, and tells you exactly what to do and when.
                 </p>
 
-                <p className="text-sm font-medium text-white">Who is it for?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
+                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  Who is it for?
+                </p>
+                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
                   Executives on international assignments, entrepreneurs with
                   multi-country structures, finance professionals, and wealthy
                   individuals splitting time across borders.
                 </p>
 
-                <p className="text-sm font-medium text-white">Is this legal advice?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
+                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  Is this legal advice?
+                </p>
+                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
                   No. Nuvare provides structured intelligence to help you understand
                   your situation and know when to engage a professional. All content
                   is informational only.
                 </p>
 
-                <p className="text-sm font-medium text-white">What does it cost?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
+                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  What does it cost?
+                </p>
+                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
                   Core plan is $99/month. Professional plan is $199/month and
                   includes Deep Research queries, Document Vault, and Country
                   Intelligence Guides. No free tier.
                 </p>
 
-                <p className="text-sm font-medium text-white">How does the AI work?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
+                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  How does the AI work?
+                </p>
+                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
                   Nuvare combines Perplexity for live regulatory data with MiniMax for
                   personalised reasoning over your specific multi-country situation.
                 </p>
