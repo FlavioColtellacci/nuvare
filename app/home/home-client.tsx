@@ -3,6 +3,7 @@
 import {
   type ChangeEvent,
   type ComponentPropsWithoutRef,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -387,6 +388,29 @@ export default function DashboardClient({
       (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
     );
   }, [deadlines]);
+
+  const loadConversations = useCallback(async () => {
+    setIsLoadingConversations(true);
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, title, updated_at")
+      .eq("user_id", userId)
+      .order("updated_at", { ascending: false });
+    setIsLoadingConversations(false);
+
+    if (error) {
+      setErrorMessage(error.message);
+      return;
+    }
+
+    const nextSessions: ConversationSummary[] = (data ?? []).map((conversation) => ({
+      id: conversation.id as string,
+      title: (conversation.title as string | null) ?? "Untitled chat",
+      updatedAt: conversation.updated_at as string,
+    }));
+    setChatSessions(nextSessions);
+  }, [supabase, userId]);
+
   const subscriptionBannerMessage =
     subscriptionTier === "professional"
       ? "You're now on Nuvare Professional. Welcome."
@@ -555,7 +579,6 @@ export default function DashboardClient({
     if (!textarea) return;
 
     textarea.style.height = "0px";
-    const computedStyle = window.getComputedStyle(textarea);
     const maxHeight = 120;
     const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
 
@@ -686,28 +709,6 @@ export default function DashboardClient({
     return createConversationForFirstMessage(firstMessage);
   }
 
-  async function loadConversations() {
-    setIsLoadingConversations(true);
-    const { data, error } = await supabase
-      .from("conversations")
-      .select("id, title, updated_at")
-      .eq("user_id", userId)
-      .order("updated_at", { ascending: false });
-    setIsLoadingConversations(false);
-
-    if (error) {
-      setErrorMessage(error.message);
-      return;
-    }
-
-    const nextSessions: ConversationSummary[] = (data ?? []).map((conversation) => ({
-      id: conversation.id as string,
-      title: (conversation.title as string | null) ?? "Untitled chat",
-      updatedAt: conversation.updated_at as string,
-    }));
-    setChatSessions(nextSessions);
-  }
-
   async function loadConversationMessages(conversationId: string) {
     if (isLoading) return;
 
@@ -752,7 +753,7 @@ export default function DashboardClient({
 
   useEffect(() => {
     void loadConversations();
-  }, [supabase, userId]);
+  }, [loadConversations]);
 
   useEffect(() => {
     let isCancelled = false;

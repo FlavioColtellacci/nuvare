@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -787,9 +788,12 @@ export default function VaultClient({ userId }: { userId: string }) {
                 className="h-[85vh] w-[90vw] rounded-md border border-white/20 bg-white"
               />
             ) : isImage(previewDocument.fileType) ? (
-              <img
+              <Image
                 src={previewDocument.signedUrl}
                 alt={previewDocument.fileName}
+                width={1200}
+                height={1600}
+                unoptimized
                 className="max-h-screen max-w-3xl object-contain"
               />
             ) : (
