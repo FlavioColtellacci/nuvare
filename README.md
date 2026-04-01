@@ -20,7 +20,7 @@ It includes onboarding, AI guidance, deadline tracking, country intelligence, do
 npm install
 ```
 
-2. Create `.env.local` and add the required keys (see list below).
+2. Environment: copy `.env.example` to `.env.local` and fill in values, or run `npx vercel env pull .env.local` with the project linked. See `.env.example` and the list below.
 3. Start the app:
 
 ```bash
@@ -31,7 +31,7 @@ npm run dev
 
 ## Environment variables
 
-Required in `.env.local`:
+Required in `.env.local` (template: `.env.example`):
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -47,6 +47,8 @@ Required in `.env.local`:
 - `NEXT_PUBLIC_APP_URL`
 - `RESEND_API_KEY`
 - `CRON_SECRET`
+
+Optional (in Vercel but not used by the app code today): `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
 ## Scripts
 
