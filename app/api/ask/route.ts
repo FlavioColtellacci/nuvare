@@ -1,142 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 
+import {
+  extractUserCountries,
+  getLatestUserQuestion,
+  normalizeAskMessages,
+} from "@/lib/ai/messages";
+import { buildAskSystemPrompt } from "@/lib/ai/prompts";
+import { fetchPerplexityRegulatoryContext } from "@/lib/ai/perplexity";
+import type { AskPayload, OnboardingAnswers } from "@/lib/ai/types";
 import { createClient } from "@/lib/supabase/server";
-
-type ChatMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-type AskPayload = {
-  messages?: ChatMessage[];
-  deepResearch?: boolean;
-};
-
-type OnboardingAnswers = Record<string, unknown>;
-type PerplexityChatResponse = {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
-  }>;
-};
-
-function normalizeMessages(messages: ChatMessage[]) {
-  return messages
-    .filter(
-      (message) =>
-        (message.role === "user" || message.role === "assistant") &&
-        typeof message.content === "string" &&
-        message.content.trim().length > 0,
-    )
-    .map((message) => ({
-      role: message.role,
-      content: message.content,
-    }));
-}
-
-function extractUserCountries(onboardingAnswers: OnboardingAnswers) {
-  const countries = new Set<string>();
-  const citizenships = onboardingAnswers.citizenships;
-  if (Array.isArray(citizenships)) {
-    for (const value of citizenships) {
-      if (typeof value === "string" && value.trim()) {
-        countries.add(value.trim());
-      }
-    }
-  }
-
-  const permitsByCountry = onboardingAnswers.permitsByCountry;
-  if (permitsByCountry && typeof permitsByCountry === "object") {
-    for (const key of Object.keys(permitsByCountry as Record<string, unknown>)) {
-      if (key.trim()) {
-        countries.add(key.trim());
-      }
-    }
-  }
-
-  return [...countries];
-}
-
-function getLatestUserQuestion(messages: { role: string; content: string }[]) {
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    if (messages[i].role === "user") {
-      return messages[i].content;
-    }
-  }
-  return messages[messages.length - 1]?.content ?? "";
-}
-
-async function fetchPerplexityRegulatoryContext(
-  question: string,
-  countries: string[],
-  apiKey: string,
-  deepResearch: boolean,
-) {
-  const year = new Date().getFullYear();
-  const countryScope = countries.length > 0 ? countries.join(", ") : "relevant jurisdictions";
-  const searchQuery = `Current ${question} rules and regulations for ${countryScope} ${year}`;
-
-  const response = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: deepResearch ? "sonar-deep-research" : "sonar",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a regulatory research assistant. Return concise, current regulatory facts with jurisdictions and dates where possible.",
-        },
-        {
-          role: "user",
-          content: searchQuery,
-        },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorPayload = (await response.json().catch(() => null)) as
-      | { error?: { message?: string } | string }
-      | null;
-    const errorMessage =
-      typeof errorPayload?.error === "string"
-        ? errorPayload.error
-        : errorPayload?.error?.message;
-    throw new Error(errorMessage ?? "Unable to fetch live regulatory context.");
-  }
-
-  const payload = (await response.json()) as PerplexityChatResponse;
-  const context = payload.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!context) {
-    throw new Error("Perplexity returned empty regulatory context.");
-  }
-
-  return { context, searchQuery };
-}
-
-function buildSystemPrompt(
-  onboardingAnswers: OnboardingAnswers,
-  currentRegulatoryContext: string,
-) {
-  return [
-    "You are Nuvare AI, a careful cross-border compliance assistant.",
-    "Personalize every answer to the user using their onboarding profile context below.",
-    "Prioritize the CURRENT REGULATORY CONTEXT below for up-to-date rules and cite it explicitly where relevant in your answer.",
-    "If required details are missing, ask concise follow-up questions before giving definitive guidance.",
-    "Never claim to be a lawyer or financial advisor. Be practical and structured.",
-    "CURRENT REGULATORY CONTEXT:",
-    currentRegulatoryContext,
-    "When you use information from the CURRENT REGULATORY CONTEXT above, always cite the source inline in your response using a numbered format like [1], [2] etc. At the end of your response, include a 'Sources' section listing the references. If no clear sources are provided in the context, note that the information is sourced from current regulatory research.",
-    "Onboarding profile context (JSON):",
-    JSON.stringify(onboardingAnswers, null, 2),
-  ].join("\n\n");
-}
 
 export async function POST(request: Request) {
   try {
@@ -158,7 +31,7 @@ export async function POST(request: Request) {
     const payload = (await request.json()) as AskPayload;
     const incomingMessages = Array.isArray(payload.messages) ? payload.messages : [];
     const deepResearch = payload.deepResearch === true;
-    const messages = normalizeMessages(incomingMessages);
+    const messages = normalizeAskMessages(incomingMessages);
 
     if (messages.length === 0) {
       return NextResponse.json(
@@ -197,7 +70,7 @@ export async function POST(request: Request) {
     const stream = anthropic.messages.stream({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
-      system: buildSystemPrompt(onboardingAnswers, currentRegulatoryContext),
+      system: buildAskSystemPrompt(onboardingAnswers, currentRegulatoryContext),
       messages,
     });
     const encoder = new TextEncoder();
@@ -223,15 +96,13 @@ export async function POST(request: Request) {
       },
     });
 
-    const response = new Response(readableStream, {
+    return new Response(readableStream, {
       status: 200,
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
       },
     });
-
-    return response;
   } catch (error) {
     return NextResponse.json(
       {

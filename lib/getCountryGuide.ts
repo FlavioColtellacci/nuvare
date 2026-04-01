@@ -1,12 +1,8 @@
+import { buildCountryGuidePrompt } from "@/lib/ai/prompts";
+import { getPerplexityMessageContent, perplexityChatCompletion } from "@/lib/ai/perplexity";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-type PerplexityChatResponse = {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
-  }>;
-};
+const COUNTRY_GUIDE_ERROR = "Unable to fetch country intelligence.";
 
 function slugToDisplayName(slug: string) {
   return slug
@@ -14,10 +10,6 @@ function slugToDisplayName(slug: string) {
     .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-}
-
-function buildPrompt(countryName: string) {
-  return `Provide a structured regulatory intelligence guide for ${countryName}. Cover these sections with clear headers: 1) Tax Residency Rules 2) Visa & Immigration 3) Banking & Finance 4) Real Estate 5) Key Obligations & Deadlines. Be factual, specific and current.`;
 }
 
 export async function getCountryGuide(
@@ -47,27 +39,21 @@ export async function getCountryGuide(
     };
   }
 
-  const response = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  const perplexityApiKey = process.env.PERPLEXITY_API_KEY;
+  if (!perplexityApiKey) {
+    throw new Error(COUNTRY_GUIDE_ERROR);
+  }
+
+  const payload = await perplexityChatCompletion(
+    perplexityApiKey,
+    {
       model: "sonar",
-      messages: [{ role: "user", content: buildPrompt(countryName) }],
-    }),
-  });
+      messages: [{ role: "user", content: buildCountryGuidePrompt(countryName) }],
+    },
+    { httpErrorMessage: COUNTRY_GUIDE_ERROR },
+  );
 
-  if (!response.ok) {
-    throw new Error("Unable to fetch country intelligence.");
-  }
-
-  const payload = (await response.json()) as PerplexityChatResponse;
-  const content = payload.choices?.[0]?.message?.content?.trim() ?? "";
-  if (!content) {
-    throw new Error("Unable to fetch country intelligence.");
-  }
+  const content = getPerplexityMessageContent(payload, COUNTRY_GUIDE_ERROR);
 
   const updatedAt = new Date().toISOString();
   const { error: upsertError } = await supabase.from("country_guides").upsert(
