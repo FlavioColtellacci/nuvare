@@ -1,39 +1,9 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
-async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      "Missing Supabase environment variables. Expected NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
-    );
-  }
-
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        } catch {
-          // Route handlers can safely ignore cookie set failures in this context.
-        }
-      },
-    },
-  });
-}
+import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -64,7 +34,7 @@ export async function GET() {
 
 export async function PATCH() {
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createClient();
     const {
       data: { session },
     } = await supabase.auth.getSession();
