@@ -7,7 +7,18 @@ import { getCountryGuide } from "@/lib/getCountryGuide";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Country Guide - Nuvare",
+  title: "Country Guide | Nuvare",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
+  },
 };
 
 function formatLastUpdated(updatedAt: string) {

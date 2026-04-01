@@ -100,19 +100,29 @@ export function OnboardingAuthPanel({
                 : "Or create an account with email"}
             </p>
             <Input
+              id="onboarding-email"
               type="email"
               placeholder="Email"
               value={email}
               onChange={(event) => onEmailChange(event.target.value)}
               className="h-11"
+              autoComplete="email"
             />
+            <label htmlFor="onboarding-email" className="sr-only">
+              Email address
+            </label>
             <Input
+              id="onboarding-password"
               type="password"
               placeholder="Password"
               value={password}
               onChange={(event) => onPasswordChange(event.target.value)}
               className="h-11"
+              autoComplete={isSignInMode ? "current-password" : "new-password"}
             />
+            <label htmlFor="onboarding-password" className="sr-only">
+              Password
+            </label>
             <Button
               size="lg"
               onClick={onEmailAuth}
@@ -136,7 +146,9 @@ export function OnboardingAuthPanel({
 
       <div className="mt-10 space-y-4">
         {errorMessage ? (
-          <p className="text-sm text-red-300">{errorMessage}</p>
+          <p className="text-sm text-red-300" role="alert" aria-live="polite">
+            {errorMessage}
+          </p>
         ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button

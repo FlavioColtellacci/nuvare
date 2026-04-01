@@ -249,7 +249,9 @@ export default function OnboardingPage() {
 
             <div className="mt-10 space-y-4">
               {errorMessage ? (
-                <p className="text-sm text-red-300">{errorMessage}</p>
+                <p className="text-sm text-red-300" role="alert" aria-live="polite">
+                  {errorMessage}
+                </p>
               ) : null}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {step > 0 ? (
@@ -267,7 +269,7 @@ export default function OnboardingPage() {
                   size="lg"
                   onClick={handleContinue}
                   disabled={isSaving || isFinalizing}
-                  className="h-11 w-full transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99] sm:h-12 sm:min-w-40 sm:w-auto"
+                  className="h-11 w-full transform-gpu text-sm tracking-wide transition duration-300 hover:scale-[1.015] active:scale-[0.99] motion-reduce:transform-none sm:h-12 sm:min-w-40 sm:w-auto"
                 >
                   {isSaving || isFinalizing ? "Saving..." : "Continue"}
                 </Button>
