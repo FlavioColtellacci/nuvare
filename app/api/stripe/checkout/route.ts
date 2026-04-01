@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { logApiError } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe/server";
 
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (profileError) {
+      logApiError("/api/stripe/checkout", profileError, { phase: "profile_read" });
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
@@ -60,6 +62,7 @@ export async function POST(request: Request) {
       );
 
       if (upsertError) {
+        logApiError("/api/stripe/checkout", upsertError, { phase: "profile_upsert" });
         return NextResponse.json({ error: upsertError.message }, { status: 500 });
       }
     }
@@ -80,6 +83,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
+    logApiError("/api/stripe/checkout", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to create checkout session." },
       { status: 500 },

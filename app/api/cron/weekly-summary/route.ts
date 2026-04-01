@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
 import type { Database } from "@/lib/database.types";
+import { logApiError } from "@/lib/log";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -213,14 +214,14 @@ export async function GET(request: Request) {
           sent += 1;
         }
       } catch (emailError) {
-        console.error("Email send error:", emailError);
+        logApiError("/api/cron/weekly-summary", emailError, { phase: "email_send" });
         errors++;
       }
     }
 
     return NextResponse.json({ sent, errors });
   } catch (error) {
-    console.error("Cron error:", error);
+    logApiError("/api/cron/weekly-summary", error);
     return NextResponse.json(
       {
         error: true,

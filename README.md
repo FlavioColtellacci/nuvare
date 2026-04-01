@@ -48,7 +48,15 @@ Required in `.env.local` (template: `.env.example`):
 - `RESEND_API_KEY`
 - `CRON_SECRET`
 
-Optional (in Vercel but not used by the app code today): `NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+**App URL vs base URL:** `NEXT_PUBLIC_APP_URL` is what the app uses today (e.g. Stripe checkout `success_url` / `cancel_url`, local dev: `http://localhost:3000`). `NEXT_PUBLIC_BASE_URL` is not read anywhere in this repo; keep it only if you wire it yourself or use it in deployment config.
+
+**Stripe publishable key:** `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is reserved for future client-side Stripe.js / Elements. Checkout today uses server-side `STRIPE_SECRET_KEY` only.
+
+**Optional rate limiting (Upstash Redis):** When both `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set, `POST /api/ask` and `POST /api/vault/upload` apply per-user (or per-IP for unauthenticated ask) limits. If either variable is missing, limiting is skipped so local dev stays unchanged.
+
+## Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, `npm run lint`, and `npm run build` on pushes and pull requests to `main`. The workflow sets **non-secret placeholder** `NEXT_PUBLIC_*` and Stripe price ID env vars so the build succeeds without repository secrets. You do not need to add GitHub Actions secrets for that job unless you change the workflow to require real keys.
 
 ## Scripts
 
