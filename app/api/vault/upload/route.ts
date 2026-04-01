@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -10,22 +10,6 @@ const ACCEPTED_MIME_TYPES = new Set(["application/pdf", "image/jpeg", "image/png
 
 function sanitizeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
-
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
 }
 
 export async function POST(request: Request) {
@@ -57,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Maximum file size is 10MB." }, { status: 400 });
     }
 
-    const adminSupabase = createAdminSupabaseClient();
+    const adminSupabase = createAdminClient();
     const sanitizedFilename = sanitizeFilename(uploadedFile.name);
     const storagePath = `${user.id}/${Date.now()}_${sanitizedFilename}`;
     const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());

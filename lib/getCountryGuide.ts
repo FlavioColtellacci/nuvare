@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type PerplexityChatResponse = {
   choices?: Array<{
@@ -24,10 +24,7 @@ export async function getCountryGuide(
   slug: string,
 ): Promise<{ content: string; updatedAt: string; countryName: string }> {
   const countryName = slugToDisplayName(slug);
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  );
+  const supabase = createAdminClient();
 
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: freshRow, error: readError } = await supabase
