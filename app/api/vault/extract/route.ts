@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -23,22 +24,6 @@ type ExtractedDate = {
   notes: string;
 };
 
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
 function normalizeMediaType(fileType: string | null) {
   if (fileType === "application/pdf") {
     return { mediaType: "application/pdf", isPdf: true };
@@ -61,7 +46,7 @@ function isExtractedDate(value: unknown): value is ExtractedDate {
 }
 
 async function markDocumentAsError(documentId: string) {
-  const adminSupabase = createAdminSupabaseClient();
+  const adminSupabase = createAdminClient();
   await adminSupabase
     .from("documents")
     .update({
@@ -95,7 +80,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing documentId." }, { status: 400 });
     }
 
-    const adminSupabase = createAdminSupabaseClient();
+    const adminSupabase = createAdminClient();
     const { data: document, error: documentError } = await adminSupabase
       .from("documents")
       .select("id, file_path, file_type")

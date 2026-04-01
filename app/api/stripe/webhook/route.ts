@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/server";
 
 export const runtime = "nodejs";
@@ -36,22 +36,6 @@ function mapPriceToSubscription(priceId: string | null | undefined): {
   return null;
 }
 
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
 async function handleCheckoutSessionCompleted(event: Stripe.Event) {
   const stripe = getStripe();
   const session = event.data.object as Stripe.Checkout.Session;
@@ -74,7 +58,7 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
     return;
   }
 
-  const adminSupabase = createAdminSupabaseClient();
+  const adminSupabase = createAdminClient();
   await adminSupabase
     .from("user_profiles")
     .update({
@@ -97,7 +81,7 @@ async function handleCustomerSubscriptionDeleted(event: Stripe.Event) {
     return;
   }
 
-  const adminSupabase = createAdminSupabaseClient();
+  const adminSupabase = createAdminClient();
   await adminSupabase
     .from("user_profiles")
     .update({
@@ -121,7 +105,7 @@ async function handleCustomerSubscriptionUpdated(event: Stripe.Event) {
     return;
   }
 
-  const adminSupabase = createAdminSupabaseClient();
+  const adminSupabase = createAdminClient();
   await adminSupabase
     .from("user_profiles")
     .update({

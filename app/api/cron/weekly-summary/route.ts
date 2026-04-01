@@ -2,9 +2,10 @@
 // e.g. generate one at: https://generate-secret.vercel.app/32
 // Also add RESEND_API_KEY if not already present.
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -112,9 +113,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createAdminClient();
     const resend = new Resend(resendApiKey);
 
     let sent = 0;
