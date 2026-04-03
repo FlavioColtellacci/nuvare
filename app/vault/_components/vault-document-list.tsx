@@ -26,33 +26,38 @@ export function VaultDocumentList({
   onRequestDelete,
   onAddDatesToDashboard,
 }: VaultDocumentListProps) {
-  if (isLoadingDocuments) {
-    return <p className="text-sm text-white/55">Loading documents...</p>;
-  }
-
-  if (documents.length === 0) {
-    return (
-      <p className="text-sm text-white/55">
-        No documents uploaded yet. Add your first document above.
-      </p>
-    );
-  }
-
   return (
-    <div className="grid w-full min-w-0 gap-4 md:grid-cols-2">
-      {documents.map((document) => (
-        <VaultDocumentCard
-          key={document.id}
-          document={document}
-          isExpanded={expandedByDocumentId[document.id] ?? false}
-          isPreviewLoading={previewLoadingByDocumentId[document.id] === true}
-          isAddingDates={addingByDocumentId[document.id] === true}
-          onToggleExpanded={() => onToggleExpanded(document.id)}
-          onPreview={() => void onPreview(document.id)}
-          onDelete={() => onRequestDelete(document.id, document.file_name)}
-          onAddDatesToDashboard={() => void onAddDatesToDashboard(document.id)}
-        />
-      ))}
+    <div className="bg-[#191b22]">
+      {/* Header row */}
+      <div className="grid grid-cols-12 px-8 py-4 border-b border-white/5 text-[10px] uppercase tracking-widest text-[#c4c7c8]">
+        <div className="col-span-5">Document / Entity</div>
+        <div className="col-span-2">Type</div>
+        <div className="col-span-3">AI Intelligence Status</div>
+        <div className="col-span-2 text-right">Actions</div>
+      </div>
+
+      {isLoadingDocuments ? (
+        <div className="px-8 py-12 text-sm text-[#c4c7c8]">Loading documents...</div>
+      ) : documents.length === 0 ? (
+        <div className="px-8 py-12 text-sm text-[#c4c7c8]">
+          No documents uploaded yet. Add your first document above.
+        </div>
+      ) : (
+        documents.map((document, index) => (
+          <VaultDocumentCard
+            key={document.id}
+            document={document}
+            rowIndex={index}
+            isExpanded={expandedByDocumentId[document.id] ?? false}
+            isPreviewLoading={previewLoadingByDocumentId[document.id] === true}
+            isAddingDates={addingByDocumentId[document.id] === true}
+            onToggleExpanded={() => onToggleExpanded(document.id)}
+            onPreview={() => void onPreview(document.id)}
+            onDelete={() => onRequestDelete(document.id, document.file_name)}
+            onAddDatesToDashboard={() => void onAddDatesToDashboard(document.id)}
+          />
+        ))
+      )}
     </div>
   );
 }

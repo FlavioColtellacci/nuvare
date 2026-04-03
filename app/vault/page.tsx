@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import VaultClient from "@/app/vault/vault-client";
-import BackButton from "@/components/BackButton";
-import Disclaimer from "@/components/Disclaimer";
 import { createClient } from "@/lib/supabase/client";
 
 export default function VaultPage() {
@@ -36,15 +34,9 @@ export default function VaultPage() {
     };
   }, [router, supabase]);
 
-  return (
-    <main className="relative min-h-screen flex flex-col bg-black text-white">
-      <div className="absolute top-6 left-6 z-50">
-        <BackButton />
-      </div>
-      <div className="flex-1">
-        {isLoading || !userId ? null : <VaultClient userId={userId} />}
-      </div>
-      <Disclaimer />
-    </main>
-  );
+  if (isLoading || !userId) {
+    return null;
+  }
+
+  return <VaultClient userId={userId} />;
 }

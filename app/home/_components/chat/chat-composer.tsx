@@ -3,8 +3,6 @@
 import type { ChangeEvent, RefObject } from "react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { SubscriptionTier } from "@/app/home/_lib/types";
 
@@ -50,39 +48,35 @@ export function ChatComposer({
   errorMessage,
 }: ChatComposerProps) {
   return (
-    <section className="px-2 py-3">
-      <div className="flex items-start gap-2.5">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center p-1 text-white/45 transition-opacity hover:text-white/85 hover:opacity-100"
-          aria-label="Attach file"
-        >
-          <span className="inline-flex h-4 w-4 items-center justify-center text-sm leading-none">
-            +
-          </span>
-        </button>
-        <div className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#101010] px-3 py-2">
-          {selectedUploadFile ? (
-            <div className="mb-2 inline-flex max-w-full items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-xs text-white/80">
+    <section className="w-full pt-2 pb-3">
+      {/* Main input frame */}
+      <div className="w-full bg-[#1e1f26] border border-white/10">
+        {/* File chip row */}
+        {selectedUploadFile ? (
+          <div className="px-3 pt-2">
+            <div className="inline-flex max-w-full items-center gap-2 bg-[#282a30] px-3 py-1 text-[10px] uppercase tracking-widest text-[#e2e2eb]">
               <span className="truncate">{selectedUploadFile.name}</span>
               <button
                 type="button"
                 onClick={onClearUpload}
-                className="rounded px-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                className="text-[#c4c7c8]/60 transition-colors hover:text-white"
                 aria-label="Remove attached file"
               >
                 ×
               </button>
             </div>
-          ) : null}
-          <Textarea
+          </div>
+        ) : null}
+
+        {/* Textarea row */}
+        <div className="px-3 pt-3 pb-1">
+          <textarea
             ref={textareaRef}
             rows={1}
             value={input}
             onChange={(event) => onInputChange(event.target.value)}
-            placeholder="Ask about tax, residency, filing obligations, or compliance deadlines..."
-            className="min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent px-0 py-2 text-sm shadow-none focus-visible:ring-0"
+            placeholder="Inquire across jurisdictions..."
+            className="w-full resize-none bg-transparent border-0 p-0 text-sm font-light text-[#e2e2eb] placeholder:text-[#c4c7c8]/40 placeholder:italic min-h-[44px] max-h-[120px] focus:outline-none focus:ring-0 shadow-none"
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
@@ -97,76 +91,148 @@ export function ChatComposer({
             className="hidden"
             onChange={onFileChange}
           />
-          <div className="mt-2 flex items-center justify-between">
+        </div>
+
+        {/* Controls row: deep research toggle (left) + attach + send (right) */}
+        <div className="flex items-center justify-between px-2 pb-2">
+          {/* Deep Research toggle */}
+          <button
+            type="button"
+            onClick={onDeepResearchToggle}
+            onMouseEnter={onDeepResearchHoverEnter}
+            onMouseLeave={onDeepResearchHoverLeave}
+            disabled={isLoading}
+            className={cn(
+              "text-[10px] uppercase tracking-widest transition-colors px-3 py-1",
+              subscriptionTier !== "professional"
+                ? "cursor-not-allowed text-[#c4c7c8]/30 opacity-40"
+                : isDeepResearch
+                  ? "bg-white text-[#111319] font-bold"
+                  : "text-[#c4c7c8]/60 hover:text-white",
+              isLoading && subscriptionTier === "professional"
+                ? "cursor-not-allowed opacity-60"
+                : "",
+            )}
+            aria-pressed={isDeepResearch}
+            aria-label="Toggle deep research mode"
+            title="Deep research"
+          >
+            {subscriptionTier === "professional" &&
+            isDeepResearch &&
+            isDeepResearchHovered ? (
+              <span>× Deep Research</span>
+            ) : (
+              <span>Deep Research</span>
+            )}
+          </button>
+
+          {/* Right-side action buttons */}
+          <div className="flex items-center gap-1">
+            {/* Attach file button */}
             <button
               type="button"
-              onClick={onDeepResearchToggle}
-              onMouseEnter={onDeepResearchHoverEnter}
-              onMouseLeave={onDeepResearchHoverLeave}
-              disabled={isLoading}
-              className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] transition-colors",
-                subscriptionTier !== "professional"
-                  ? "cursor-not-allowed border-white/15 bg-white/[0.03] text-white/55 opacity-40"
-                  : isDeepResearch
-                    ? "border-white/35 bg-white/12 text-white"
-                    : "border-white/15 bg-white/[0.03] text-white/55 hover:border-white/25 hover:text-white/75",
-                isLoading ? "cursor-not-allowed opacity-60" : "",
-              )}
-              aria-pressed={isDeepResearch}
-              aria-label="Toggle deep research mode"
-              title="Deep research"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-[#c4c7c8]/60 transition-colors hover:text-white"
+              aria-label="Attach file"
             >
-              {subscriptionTier === "professional" && isDeepResearch && isDeepResearchHovered ? (
-                <span>× Deep Research</span>
-              ) : (
-                <>
-                  <span aria-hidden>🔭</span>
-                  <span>Deep Research</span>
-                </>
-              )}
-            </button>
-            {isLoading ? (
-              <Button
-                onClick={() => void onStop()}
-                className="h-7 w-7 rounded-full p-1 text-sm"
-                title="Stop"
+              {/* Paperclip SVG */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
               >
-                <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
-                  ■
-                </span>
-              </Button>
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+            </button>
+
+            {/* Send / Stop button */}
+            {isLoading ? (
+              <button
+                type="button"
+                onClick={() => void onStop()}
+                className="bg-[#282a30] text-[#e2e2eb] p-2 hover:bg-[#373940] transition-all"
+                title="Stop"
+                aria-label="Stop generation"
+              >
+                {/* Stop (square) icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <rect x="5" y="5" width="14" height="14" rx="1" />
+                </svg>
+              </button>
             ) : (
-              <Button
+              <button
+                type="button"
                 onClick={() => void onSubmit()}
                 disabled={!input.trim()}
-                className="h-7 w-7 rounded-full p-1 text-sm"
+                className="bg-white text-[#111319] p-2 hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Send"
+                aria-label="Send message"
               >
-                <span className="inline-flex h-4 w-4 items-center justify-center leading-none">
-                  ↑
-                </span>
-              </Button>
+                {/* Arrow up icon */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <line x1="12" y1="19" x2="12" y2="5" />
+                  <polyline points="5 12 12 5 19 12" />
+                </svg>
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Deep research upgrade message */}
       {showDeepResearchUpgradeMessage && subscriptionTier !== "professional" ? (
-        <p className="mt-3 text-xs text-white/60">
+        <p className="mt-2 text-[10px] text-[#c4c7c8] uppercase tracking-widest">
           Deep Research is available on the Professional plan.{" "}
           <Link
             href="/pricing"
-            className="text-white underline underline-offset-4 transition-colors hover:text-white/80"
+            className="text-white underline underline-offset-4 transition-colors hover:text-white/70"
           >
-            Upgrade →
+            Upgrade
           </Link>
         </p>
       ) : null}
-      <p className="mt-2 text-xs text-white/40">Press Enter to send, Shift+Enter for new line.</p>
-      <p className="mt-1 w-full text-center text-xs text-white/30">
-        This is informational only, not legal or financial advice.
+
+      {/* Hint line */}
+      <p className="mt-2 text-[10px] uppercase tracking-widest text-[#c4c7c8]/30">
+        Enter to send &mdash; Shift+Enter for new line
       </p>
-      {errorMessage ? <p className="mt-3 text-sm text-red-300">{errorMessage}</p> : null}
+
+      {/* Disclaimer */}
+      <p className="mt-1 w-full text-center text-[10px] uppercase tracking-widest text-[#c4c7c8]/20">
+        Informational only &mdash; not legal or financial advice
+      </p>
+
+      {/* Error message */}
+      {errorMessage ? (
+        <p className="mt-2 text-[10px] uppercase tracking-widest text-[#ffb4ab]">
+          {errorMessage}
+        </p>
+      ) : null}
     </section>
   );
 }
