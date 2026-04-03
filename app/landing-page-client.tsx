@@ -103,8 +103,9 @@ export default function LandingPageClient() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-[color:var(--marketing-text-strong)]">
-      <div className="pointer-events-none absolute inset-0">
+    <main className="relative flex flex-col bg-[#111319] text-[#e2e2eb]">
+      {/* ── Background gradient (hero only) ── */}
+      <div className="pointer-events-none absolute inset-0 h-screen">
         <MeshGradient
           className="absolute inset-0 h-full w-full"
           colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
@@ -117,14 +118,18 @@ export default function LandingPageClient() {
         />
       </div>
 
-      <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
-        <div className="grid grid-cols-1 items-center gap-5 md:grid-cols-3">
+      {/* ═══════════════════════════════════════════
+          NAVBAR
+      ═══════════════════════════════════════════ */}
+      <header className="fixed top-0 z-50 w-full bg-[#111319]/70 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-12 py-6">
+          {/* Wordmark with sparkle effect */}
           <motion.div
-            whileHover={shouldReduceMotion ? undefined : { scale: 1.05 }}
+            whileHover={shouldReduceMotion ? undefined : { scale: 1.03 }}
             className="relative w-fit cursor-default select-none"
             onMouseMove={createSparkle}
           >
-            <span className="font-light text-xl tracking-[0.25em] text-[color:var(--marketing-text-strong)]">
+            <span className="text-xl font-black tracking-widest uppercase text-white">
               NUVARE
             </span>
             <AnimatePresence>
@@ -154,22 +159,23 @@ export default function LandingPageClient() {
             </AnimatePresence>
           </motion.div>
 
-          <nav className="flex items-center justify-center gap-2">
+          {/* Nav links */}
+          <nav className="hidden items-center gap-12 md:flex">
             <Link
               href="/intelligence-methodology"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
+              className="text-xs font-light uppercase tracking-[0.2em] text-[#e2e2eb]/60 transition-colors hover:text-white"
             >
               How it Works
             </Link>
             <Link
               href="/features"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
+              className="text-xs font-light uppercase tracking-[0.2em] text-[#e2e2eb]/60 transition-colors hover:text-white"
             >
               Features
             </Link>
             <Link
               href="/pricing"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
+              className="text-xs font-light uppercase tracking-[0.2em] text-[#e2e2eb]/60 transition-colors hover:text-white"
             >
               Pricing
             </Link>
@@ -180,120 +186,68 @@ export default function LandingPageClient() {
               aria-haspopup="dialog"
               aria-expanded={isFaqOpen}
               aria-controls="marketing-faq-dialog"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm transition-all hover:bg-white/12 hover:text-[color:var(--marketing-text-strong)]"
+              className="text-xs font-light uppercase tracking-[0.2em] text-[#e2e2eb]/60 transition-colors hover:text-white"
             >
               FAQ
             </button>
           </nav>
 
-          <div className="flex justify-start md:justify-end">
-            <svg width="0" height="0" className="absolute">
-              <defs>
-                <filter id="gooey">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-                  <feColorMatrix
-                    in="blur"
-                    mode="matrix"
-                    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"
-                    result="gooey"
-                  />
-                  <feBlend in="SourceGraphic" in2="gooey" />
-                </filter>
-              </defs>
-            </svg>
-            <div className="relative" style={{ filter: "url(#gooey)" }}>
-              <button
-                type="button"
-                onClick={() => router.push("/login")}
-                className="relative z-20 rounded-full border border-white/20 bg-white px-5 py-2 text-xs font-medium text-black transition-transform duration-300 hover:scale-[1.03] motion-reduce:transform-none"
-              >
-                Login
-              </button>
-              <motion.span
-                className="absolute -left-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={
-                  shouldReduceMotion
-                    ? { x: 0, y: "-50%" }
-                    : { x: [0, 8, 0], y: ["-50%", "-70%", "-50%"] }
-                }
-                transition={{
-                  duration: shouldReduceMotion ? 0 : 2.2,
-                  repeat: shouldReduceMotion ? 0 : Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.span
-                className="absolute -right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={
-                  shouldReduceMotion
-                    ? { x: 0, y: "-50%" }
-                    : { x: [0, -8, 0], y: ["-50%", "-30%", "-50%"] }
-                }
-                transition={{
-                  duration: shouldReduceMotion ? 0 : 2,
-                  repeat: shouldReduceMotion ? 0 : Infinity,
-                  ease: "easeInOut",
-                  delay: shouldReduceMotion ? 0 : 0.2,
-                }}
-              />
-            </div>
-          </div>
+          {/* Login button — sharp rectangular */}
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="bg-white px-5 py-2 text-xs font-bold uppercase tracking-widest text-black transition-all hover:opacity-90"
+          >
+            Login
+          </button>
         </div>
       </header>
 
+      {/* ═══════════════════════════════════════════
+          HERO
+      ═══════════════════════════════════════════ */}
       <section
-        className="relative z-20 flex flex-1 flex-col px-6 pb-10 pt-4 md:px-10 md:pb-14 md:pt-6"
         id="features"
+        className="relative flex min-h-screen flex-col items-center justify-center px-12 pb-24 pt-32 text-center"
       >
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-xs font-light text-[color:var(--marketing-text-base)] backdrop-blur-sm">
-            <span>🌐</span>
-            <span>Private intelligence for the internationally mobile</span>
-            <span className="h-px w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </div>
-
-          <div className="mt-8 space-y-1">
-            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
-              The private
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center">
+          {/* Headline */}
+          <div className="space-y-2">
+            <h1 className="text-6xl font-extrabold tracking-tight text-white md:text-7xl">
+              Cross-Border
             </h1>
-            <h1 className="text-5xl font-black leading-none text-[color:var(--marketing-text-strong)] drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] md:text-7xl">
-              intelligence
+            <h1 className="text-6xl font-extrabold tracking-tight text-white/40 md:text-7xl">
+              Compliance,
             </h1>
-            <h1 className="text-5xl font-light italic leading-tight text-[color:var(--marketing-text-base)] md:text-7xl">
-              layer.
+            <h1 className="text-6xl font-extrabold tracking-tight text-white md:text-7xl">
+              Simplified.
             </h1>
           </div>
 
-          <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-[color:var(--marketing-text-muted)] md:text-base">
-            Nuvare watches your compliance and financial obligations across every
-            country you live, work, and invest in, so nothing falls through the
-            cracks.
-          </p>
-          <p className="mt-3 text-sm text-[color:var(--marketing-text-muted)]">
-            <Link
-              href="/intelligence-methodology"
-              className="underline decoration-white/40 underline-offset-4 transition-colors hover:text-[color:var(--marketing-text-strong)]"
-            >
-              Read our trust and methodology notes
-            </Link>
+          {/* Subtitle */}
+          <p className="mt-10 max-w-lg text-xl leading-relaxed text-[#e2e2eb]/60">
+            The intelligence platform for the internationally mobile. Precision
+            audit trails and cross-jurisdictional clarity in one sovereign
+            environment.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          {/* CTA buttons */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6">
             <motion.button
               type="button"
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.03 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
               onClick={() => router.push("/onboarding")}
-              className="rounded-full border border-white bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90"
+              className="bg-white px-8 py-4 text-xs font-bold uppercase tracking-widest text-black hover:opacity-90 transition-all"
             >
               Get Started
             </motion.button>
             <motion.button
               type="button"
-              whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
-              whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+              whileHover={shouldReduceMotion ? undefined : { scale: 1.03 }}
+              whileTap={shouldReduceMotion ? undefined : { scale: 0.97 }}
               onClick={() => router.push("/pricing")}
-              className="rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-light text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
+              className="border border-white/10 px-8 py-4 text-xs font-bold uppercase tracking-widest text-white hover:bg-white/5 transition-all"
             >
               View Pricing
             </motion.button>
@@ -301,10 +255,271 @@ export default function LandingPageClient() {
         </div>
       </section>
 
-      <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
+      {/* ═══════════════════════════════════════════
+          SECTION A — CORE INTELLIGENCE BENTO GRID
+      ═══════════════════════════════════════════ */}
+      <section id="core-intelligence" className="bg-[#0c0e14] px-12 py-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-24">
+            <h2 className="mb-4 text-4xl font-black uppercase tracking-tight text-white">
+              Core Intelligence
+            </h2>
+            <div className="h-px w-24 bg-white" />
+          </div>
+
+          <div className="grid h-auto grid-cols-1 gap-8 md:grid-cols-12 md:h-[600px]">
+            {/* Card 1 — Deadline Dashboard */}
+            <Link
+              href="/home"
+              className="group flex cursor-pointer flex-col justify-between bg-[#1e1f26] p-12 transition-all hover:bg-[#282a30] md:col-span-8"
+            >
+              <div>
+                <span className="mb-8 block text-4xl text-[#e2e2eb]/40">⏱</span>
+                <h3 className="mb-4 text-3xl font-bold text-white">
+                  Deadline Dashboard
+                </h3>
+                <p className="max-w-md text-[#e2e2eb]/40">
+                  Real-time tracking of tax filings, residency renewals, and
+                  regulatory submissions across 180+ jurisdictions.
+                </p>
+              </div>
+              <div className="flex items-center gap-4 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="text-xs font-bold uppercase tracking-widest text-white">
+                  Explore Interface
+                </span>
+                <span className="text-white">→</span>
+              </div>
+            </Link>
+
+            {/* Card 2 — Ask Anything */}
+            <Link
+              href="/home"
+              className="flex cursor-pointer flex-col justify-between bg-white p-12 text-[#111319] md:col-span-4"
+            >
+              <span className="text-4xl">✦</span>
+              <div>
+                <h3 className="mb-4 text-2xl font-black uppercase leading-tight">
+                  Ask Anything
+                </h3>
+                <p className="text-sm text-[#111319]/60">
+                  LLM-powered compliance engine for instant clarity.
+                </p>
+              </div>
+            </Link>
+
+            {/* Card 3 — Document Vault */}
+            <Link
+              href="/vault"
+              className="flex cursor-pointer flex-col justify-between bg-[#282a30] p-12 transition-all hover:bg-[#373940] md:col-span-4"
+            >
+              <span className="text-4xl text-[#e2e2eb]/40">⬡</span>
+              <div>
+                <h3 className="mb-2 text-xl font-bold text-white">
+                  Document Vault
+                </h3>
+                <p className="text-sm text-[#e2e2eb]/40">
+                  Zero-knowledge encryption for your most sensitive legal and
+                  financial records.
+                </p>
+              </div>
+            </Link>
+
+            {/* Card 4 — Security */}
+            <div className="relative flex cursor-pointer flex-col justify-end overflow-hidden bg-[#191b22] p-12 md:col-span-8">
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#111319] via-transparent to-transparent" />
+              <div className="relative">
+                <p className="mb-2 text-xs uppercase tracking-[0.4em] text-white/30">
+                  The Security Standard
+                </p>
+                <h3 className="text-3xl font-bold text-white">
+                  Military-Grade Infrastructure
+                </h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          SECTION B — THE 80% ANSWER
+      ═══════════════════════════════════════════ */}
+      <section id="methodology" className="bg-[#111319] px-12 py-48">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="mb-8 text-xs font-black uppercase tracking-[0.5em] text-white/20">
+            Methodology
+          </p>
+          <h2 className="mb-12 text-5xl font-extrabold tracking-tight text-white">
+            The 80% Answer
+          </h2>
+          <div className="mx-auto max-w-2xl space-y-8 border-l-2 border-white/5 pl-12 text-left text-xl leading-relaxed text-[#e2e2eb]/60">
+            <p>
+              Compliance isn&apos;t about guessing; it&apos;s about eliminating the noise.
+              Nuvare provides the{" "}
+              <strong className="font-bold text-white">
+                80% foundational truth
+              </strong>{" "}
+              of any cross-border query instantly.
+            </p>
+            <p>
+              We reduce billable hours of traditional counsel by automating
+              discovery and synthesis of global regulations.
+            </p>
+            <Link
+              href="/intelligence-methodology"
+              className="inline-block border-b border-white/20 pb-2 text-sm font-bold uppercase tracking-widest text-white transition-all hover:border-white"
+            >
+              Read Methodology Notes
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          SECTION C — PRICING
+      ═══════════════════════════════════════════ */}
+      <section id="pricing" className="bg-[#191b22] px-12 py-32">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-24 text-center">
+            <h2 className="mb-4 text-4xl font-black uppercase text-white">
+              Membership Tiers
+            </h2>
+            <p className="text-xs uppercase tracking-widest text-[#e2e2eb]/40">
+              Architected for the Sovereign Individual
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-px bg-white/5 md:grid-cols-2">
+            {/* Core Tier */}
+            <div className="flex flex-col justify-between bg-[#111319] p-16">
+              <div>
+                <p className="mb-12 text-xs uppercase tracking-[0.3em] text-white/40">
+                  Tier 01
+                </p>
+                <h3 className="mb-4 text-4xl font-bold text-white">Core</h3>
+                <p className="mb-12 text-5xl font-black text-white">
+                  $99{" "}
+                  <span className="text-sm font-normal uppercase tracking-widest text-white/20">
+                    / Month
+                  </span>
+                </p>
+                <ul className="mb-16 space-y-6">
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-[#e2e2eb]/70">
+                    <span className="text-white">✓</span>
+                    <span>Standard Compliance Ledger</span>
+                  </li>
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-[#e2e2eb]/70">
+                    <span className="text-white">✓</span>
+                    <span>Residency Tracker (2 Nations)</span>
+                  </li>
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-[#e2e2eb]/70">
+                    <span className="text-white">✓</span>
+                    <span>Encrypted Document Vault (10GB)</span>
+                  </li>
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/pricing")}
+                className="w-full border border-white/10 py-5 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-white hover:text-[#111319]"
+              >
+                Subscribe
+              </button>
+            </div>
+
+            {/* Professional Tier */}
+            <div className="relative flex flex-col justify-between overflow-hidden bg-[#1e1f26] p-16">
+              <div className="absolute right-0 top-0 bg-white px-8 py-2 text-[10px] font-black uppercase tracking-widest text-[#111319]">
+                Recommended
+              </div>
+              <div>
+                <p className="mb-12 text-xs uppercase tracking-[0.3em] text-white/40">
+                  Tier 02
+                </p>
+                <h3 className="mb-4 text-4xl font-bold text-white">
+                  Professional
+                </h3>
+                <p className="mb-12 text-5xl font-black text-white">
+                  $199{" "}
+                  <span className="text-sm font-normal uppercase tracking-widest text-white/20">
+                    / Month
+                  </span>
+                </p>
+                <ul className="mb-16 space-y-6">
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-white">
+                    <span className="text-white">✓</span>
+                    <span>Unlimited Intelligence Ledger</span>
+                  </li>
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-white">
+                    <span className="text-white">✓</span>
+                    <span>Multi-Jurisdictional Residency Audit</span>
+                  </li>
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-white">
+                    <span className="text-white">✓</span>
+                    <span>Priority LLM &apos;Ask Anything&apos; Access</span>
+                  </li>
+                  <li className="flex items-center gap-4 text-sm tracking-wide text-white">
+                    <span className="text-white">✓</span>
+                    <span>Concierge Document Retrieval</span>
+                  </li>
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/pricing")}
+                className="w-full bg-white py-5 text-xs font-bold uppercase tracking-widest text-[#111319] transition-all hover:opacity-90"
+              >
+                Select Professional
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════
+          DISCLAIMER
+      ═══════════════════════════════════════════ */}
+      <div className="relative z-20 bg-[#111319] px-8 py-6">
         <Disclaimer />
       </div>
 
+      {/* ═══════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════ */}
+      <footer className="flex flex-col items-center gap-4 border-t border-white/5 bg-[#0c0e14] px-8 py-12">
+        <div className="mb-4 flex flex-wrap justify-center gap-12">
+          <Link
+            href="/legal"
+            className="text-xs uppercase tracking-widest text-[#e2e2eb]/50 transition-colors hover:text-white"
+          >
+            Legal
+          </Link>
+          <Link
+            href="/compliance"
+            className="text-xs uppercase tracking-widest text-[#e2e2eb]/50 transition-colors hover:text-white"
+          >
+            Compliance
+          </Link>
+          <Link
+            href="/privacy"
+            className="text-xs uppercase tracking-widest text-[#e2e2eb]/50 transition-colors hover:text-white"
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            href="/terms"
+            className="text-xs uppercase tracking-widest text-[#e2e2eb]/50 transition-colors hover:text-white"
+          >
+            Terms of Service
+          </Link>
+        </div>
+        <p className="max-w-2xl text-center text-xs uppercase leading-loose tracking-widest text-[#e2e2eb]/50">
+          © 2024 Nuvare. All rights reserved. Precision is the ultimate luxury.
+        </p>
+      </footer>
+
+      {/* ═══════════════════════════════════════════
+          FAQ MODAL
+      ═══════════════════════════════════════════ */}
       <AnimatePresence>
         {isFaqOpen ? (
           <motion.div
@@ -321,7 +536,7 @@ export default function LandingPageClient() {
               aria-modal="true"
               aria-labelledby="marketing-faq-title"
               ref={faqModalRef}
-              className="relative w-full max-w-lg rounded-2xl border border-white/12 bg-[#0b0b0b] p-8"
+              className="relative w-full max-w-lg border border-white/10 bg-[#0b0b0b] p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.98 }}
@@ -335,62 +550,74 @@ export default function LandingPageClient() {
                 ref={faqCloseButtonRef}
                 type="button"
                 onClick={() => setIsFaqOpen(false)}
-                className="absolute right-4 top-4 rounded-full border border-white/15 px-2 py-1 text-xs text-[color:var(--marketing-text-base)] transition-colors hover:bg-white/10 hover:text-[color:var(--marketing-text-strong)]"
+                className="absolute right-4 top-4 border border-white/15 px-2 py-1 text-xs text-[#e2e2eb]/60 transition-colors hover:bg-white/10 hover:text-white"
                 aria-label="Close FAQ modal"
               >
-                X
+                ✕
               </button>
               <h2
                 id="marketing-faq-title"
-                className="font-editorial text-3xl text-[color:var(--marketing-text-strong)]"
+                className="text-3xl font-bold text-white"
               >
                 Frequently Asked Questions
               </h2>
-              <div className="mt-6">
-                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
-                  What is Nuvare?
-                </p>
-                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
-                  Nuvare is a proactive compliance and financial intelligence tool for
-                  internationally mobile professionals. It tracks your obligations
-                  across countries, visas, tax deadlines, permits, foreign asset
-                  declarations, and tells you exactly what to do and when.
-                </p>
+              <div className="mt-6 space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    What is Nuvare?
+                  </p>
+                  <p className="mt-1 text-sm font-light text-[#e2e2eb]/60">
+                    Nuvare is a proactive compliance and financial intelligence
+                    tool for internationally mobile professionals. It tracks your
+                    obligations across countries, visas, tax deadlines, permits,
+                    foreign asset declarations, and tells you exactly what to do
+                    and when.
+                  </p>
+                </div>
 
-                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
-                  Who is it for?
-                </p>
-                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
-                  Executives on international assignments, entrepreneurs with
-                  multi-country structures, finance professionals, and wealthy
-                  individuals splitting time across borders.
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Who is it for?
+                  </p>
+                  <p className="mt-1 text-sm font-light text-[#e2e2eb]/60">
+                    Executives on international assignments, entrepreneurs with
+                    multi-country structures, finance professionals, and wealthy
+                    individuals splitting time across borders.
+                  </p>
+                </div>
 
-                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
-                  Is this legal advice?
-                </p>
-                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
-                  No. Nuvare provides structured intelligence to help you understand
-                  your situation and know when to engage a professional. All content
-                  is informational only.
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    Is this legal advice?
+                  </p>
+                  <p className="mt-1 text-sm font-light text-[#e2e2eb]/60">
+                    No. Nuvare provides structured intelligence to help you
+                    understand your situation and know when to engage a
+                    professional. All content is informational only.
+                  </p>
+                </div>
 
-                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
-                  What does it cost?
-                </p>
-                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
-                  Core plan is $99/month. Professional plan is $199/month and
-                  includes Deep Research queries, Document Vault, and Country
-                  Intelligence Guides. No free tier.
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    What does it cost?
+                  </p>
+                  <p className="mt-1 text-sm font-light text-[#e2e2eb]/60">
+                    Core plan is $99/month. Professional plan is $199/month and
+                    includes Deep Research queries, Document Vault, and Country
+                    Intelligence Guides. No free tier.
+                  </p>
+                </div>
 
-                <p className="text-sm font-medium text-[color:var(--marketing-text-strong)]">
-                  How does the AI work?
-                </p>
-                <p className="mb-4 mt-1 text-sm font-light text-[color:var(--marketing-text-muted)]">
-                  Nuvare combines Perplexity for live regulatory data with MiniMax for
-                  personalised reasoning over your specific multi-country situation.
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    How does the AI work?
+                  </p>
+                  <p className="mt-1 text-sm font-light text-[#e2e2eb]/60">
+                    Nuvare combines Perplexity for live regulatory data with
+                    MiniMax for personalised reasoning over your specific
+                    multi-country situation.
+                  </p>
+                </div>
               </div>
             </motion.div>
           </motion.div>

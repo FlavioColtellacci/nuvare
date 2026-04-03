@@ -84,6 +84,25 @@
   --marketing-text-strong: #f5f7fb;
   --marketing-text-base: #dbe3ee;
   --marketing-text-muted: #b9c5d7;
+
+  /* Onyx Design System Tokens */
+  --onyx-surface:                  #111319;
+  --onyx-surface-dim:              #111319;
+  --onyx-surface-container-lowest: #0c0e14;
+  --onyx-surface-container-low:    #191b22;
+  --onyx-surface-container:        #1e1f26;
+  --onyx-surface-container-high:   #282a30;
+  --onyx-surface-container-highest:#33343b;
+  --onyx-surface-bright:           #373940;
+  --onyx-on-surface:               #e2e2eb;
+  --onyx-on-surface-variant:       #c4c7c8;
+  --onyx-outline:                  #8e9192;
+  --onyx-outline-variant:          #444748;
+  --onyx-error:                    #ffb4ab;
+  --onyx-error-container:          #93000a;
+  --onyx-on-error:                 #690005;
+  --onyx-primary:                  #ffffff;
+  --onyx-on-primary:               #2f3131;
 }
 
 .dark {
@@ -121,6 +140,25 @@
   --marketing-text-strong: #f5f7fb;
   --marketing-text-base: #dbe3ee;
   --marketing-text-muted: #b9c5d7;
+
+  /* Onyx Design System Tokens */
+  --onyx-surface:                  #111319;
+  --onyx-surface-dim:              #111319;
+  --onyx-surface-container-lowest: #0c0e14;
+  --onyx-surface-container-low:    #191b22;
+  --onyx-surface-container:        #1e1f26;
+  --onyx-surface-container-high:   #282a30;
+  --onyx-surface-container-highest:#33343b;
+  --onyx-surface-bright:           #373940;
+  --onyx-on-surface:               #e2e2eb;
+  --onyx-on-surface-variant:       #c4c7c8;
+  --onyx-outline:                  #8e9192;
+  --onyx-outline-variant:          #444748;
+  --onyx-error:                    #ffb4ab;
+  --onyx-error-container:          #93000a;
+  --onyx-on-error:                 #690005;
+  --onyx-primary:                  #ffffff;
+  --onyx-on-primary:               #2f3131;
 }
 
 @layer base {

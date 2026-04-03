@@ -30,6 +30,7 @@ import type {
   SubscriptionTier,
   ViewedCountry,
 } from "@/app/home/_lib/types";
+import { AppHeader } from "@/components/app-header";
 import { AddDeadlineModal } from "@/app/home/_components/deadlines/add-deadline-modal";
 import { DashboardMobileHeader } from "@/app/home/_components/dashboard-mobile-header";
 import { DashboardSidebar } from "@/app/home/_components/dashboard-sidebar";
@@ -1039,6 +1040,7 @@ export default function DashboardClient({
 
   return (
     <main className="onboarding-bg relative min-h-screen overflow-hidden bg-black text-white">
+      <AppHeader userEmail={userEmail} className="hidden md:flex" />
       <div className="onboarding-glow pointer-events-none absolute inset-0" />
       <div className="relative min-h-screen">
         {isSidebarOpen && (
@@ -1089,22 +1091,22 @@ export default function DashboardClient({
           {!isSidebarOpen ? (
             <DashboardMobileHeader onOpenSidebar={() => setIsSidebarOpen(true)} />
           ) : null}
-          <section className="flex h-screen flex-col px-6 pb-6 pt-16 md:px-10 md:py-6">
+          <section className="flex h-screen flex-col bg-[#111319] px-6 pb-6 pt-16 md:px-10 md:py-6">
             {!hasProfile ? (
-              <p className="mb-4 text-sm text-amber-300">
+              <p className="mb-4 text-xs uppercase tracking-widest text-[#c4c7c8]/60">
                 Your profile is incomplete. Answers may be less personalized until onboarding is
                 finished.
               </p>
             ) : null}
             {showOnboardingNudge ? (
-              <div className="mb-4 rounded-lg border border-white/15 bg-[#111111] px-4 py-3 text-sm text-white/80">
+              <div className="mb-4 bg-[#1e1f26] border-l-4 border-white/30 px-6 py-4 text-sm text-[#e2e2eb]">
                 <p>
                   You have unlocked your dashboard. Complete the remaining onboarding steps to
                   improve profile precision and recommendations.
                 </p>
                 <Link
                   href="/onboarding?phase=extended"
-                  className="mt-2 inline-block text-sm text-white underline underline-offset-4 transition-colors hover:text-white/70"
+                  className="mt-2 inline-block text-xs uppercase tracking-widest text-white underline underline-offset-4 transition-colors hover:text-white/70"
                 >
                   Resume profile setup
                 </Link>
@@ -1114,7 +1116,7 @@ export default function DashboardClient({
               <button
                 type="button"
                 onClick={() => setShowSubscriptionBanner(false)}
-                className="mb-3 w-full rounded-lg border border-white/15 bg-[#111111] px-4 py-2 text-left text-sm text-white/80 transition-colors hover:bg-[#171717]"
+                className="mb-3 w-full bg-[#1e1f26] border-l-4 border-white/20 px-6 py-4 text-left text-sm text-[#e2e2eb] transition-colors hover:bg-[#282a30]"
               >
                 {subscriptionBannerMessage}
               </button>

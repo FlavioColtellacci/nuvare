@@ -2,15 +2,20 @@
 
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import type { DashboardDeadline } from "@/app/home/_lib/types";
-import { daysRemaining, formatDate, getUrgencyColor } from "@/app/home/_lib/format";
+import { daysRemaining } from "@/app/home/_lib/format";
 
 type SidebarDeadlinesSectionProps = {
   allDeadlines: DashboardDeadline[];
   onOpenAddModal: () => void;
 };
+
+function parseDateParts(dateString: string): { day: string; month: string } {
+  const date = new Date(dateString);
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" }).toUpperCase();
+  return { day, month };
+}
 
 export function SidebarDeadlinesSection({
   allDeadlines,
@@ -20,56 +25,121 @@ export function SidebarDeadlinesSection({
 
   return (
     <section className="mt-4 border-t border-white/10 pt-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.16em] text-white/45">Deadlines</p>
-        <Button
-          size="lg"
-          variant="secondary"
-          onClick={onOpenAddModal}
-          className="h-8 border border-white/20 bg-transparent px-2 text-xs text-white hover:bg-white/10"
-        >
-          Add deadline
-        </Button>
+      {/* Section header */}
+      <div className="mb-4 flex items-center justify-between px-1">
+        <p className="text-[9px] uppercase tracking-[0.3em] font-bold text-[#c4c7c8]">
+          Upcoming Obligations
+        </p>
       </div>
 
       {allDeadlines.length === 0 ? (
-        <div className="rounded-lg border border-white/12 bg-[#111111] p-3">
-          <p className="text-xs text-white/55">No deadlines tracked yet.</p>
-          <Button
-            size="lg"
-            variant="secondary"
+        <div className="bg-[#0c0e14] border border-white/10 p-4">
+          <p className="text-[10px] uppercase tracking-widest text-[#c4c7c8]/60">
+            No deadlines tracked yet.
+          </p>
+          <button
+            type="button"
             onClick={() => router.push("/onboarding")}
-            className="mt-3 h-8 w-full border border-white/20 bg-transparent text-xs text-white hover:bg-white/10"
+            className="mt-3 w-full py-3 border border-white/10 text-[#c4c7c8] text-[10px] uppercase tracking-widest hover:bg-[#1e1f26] hover:text-white transition-all"
           >
             Complete profile
-          </Button>
+          </button>
         </div>
       ) : (
-        <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-64 overflow-y-auto">
           {allDeadlines.map((deadline) => {
-            const days = daysRemaining(deadline.dueDate);
+            const daysUntil = daysRemaining(deadline.dueDate);
+            const { day, month } = parseDateParts(deadline.dueDate);
+
             return (
-              <article
+              <div
                 key={deadline.id}
-                className="rounded-lg border border-white/12 bg-[#111111] p-3"
+                className={`flex items-center justify-between px-4 py-5 hover:bg-[#282a30] transition-all group ${
+                  daysUntil <= 7
+                    ? "border-l-4 border-white"
+                    : daysUntil <= 30
+                      ? "border-l-4 border-white/30"
+                      : "border-l-4 border-white/5"
+                }`}
               >
-                <p className="text-xs text-white/90">{deadline.title}</p>
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="text-[11px] text-white/50">{formatDate(deadline.dueDate)}</p>
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px]",
-                      getUrgencyColor(days),
-                    )}
-                  >
-                    {days <= 0 ? "Due now" : `${days}d`}
+                {/* Date block */}
+                <div className="text-center w-10 shrink-0">
+                  <span className="block text-2xl font-black text-white leading-none">{day}</span>
+                  <span className="text-[9px] uppercase font-bold tracking-widest text-[#c4c7c8]/40">
+                    {month}
                   </span>
                 </div>
-              </article>
+
+                {/* Title + meta */}
+                <div className="flex-1 px-4">
+                  <h4 className="text-white font-bold text-sm">{deadline.title}</h4>
+                  {deadline.category ? (
+                    <p className="text-[9px] text-[#c4c7c8] uppercase tracking-widest mt-0.5">
+                      {deadline.category}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Status badge */}
+                <div className="text-right shrink-0">
+                  <span
+                    className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-tighter ${
+                      daysUntil <= 0
+                        ? "bg-[#33343b] text-white border border-white/20"
+                        : daysUntil <= 7
+                          ? "bg-[#33343b] text-white border border-white/20"
+                          : daysUntil <= 30
+                            ? "bg-[#1e1f26] text-[#c4c7c8]"
+                            : "bg-[#191b22] text-[#c4c7c8]/40"
+                    }`}
+                  >
+                    {daysUntil <= 0 ? "OVERDUE" : `${daysUntil}D`}
+                  </span>
+                </div>
+              </div>
             );
           })}
         </div>
       )}
+
+      {/* Add deadline button */}
+      <button
+        type="button"
+        onClick={onOpenAddModal}
+        className="mt-3 w-full py-3 border border-white/10 text-[#c4c7c8] text-[10px] uppercase tracking-widest hover:bg-[#1e1f26] hover:text-white transition-all"
+      >
+        Add deadline
+      </button>
+
+      {/* Vault Sync Active indicator */}
+      <div className="bg-[#0c0e14] p-4 border border-white/10 mt-4">
+        <div className="flex items-center gap-2 mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-white"
+            aria-hidden="true"
+          >
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 16h5v5" />
+          </svg>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-white">
+            Vault Sync Active
+          </span>
+        </div>
+        <p className="text-[10px] text-[#c4c7c8]/50 leading-relaxed">
+          4/4 documents verified
+        </p>
+      </div>
     </section>
   );
 }
