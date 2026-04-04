@@ -1,7 +1,6 @@
 "use client";
 
-import { MeshGradient } from "@paper-design/shaders-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   CalendarClock,
   MessageSquare,
@@ -10,7 +9,7 @@ import {
   UserCircle,
   type LucideIcon,
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
+import Link from "next/link";
 import Disclaimer from "@/components/Disclaimer";
 
 type Feature = {
@@ -53,71 +52,132 @@ const features: Feature[] = [
 ];
 
 export default function FeaturesPageClient() {
-  const shouldReduceMotion = useReducedMotion();
-
   return (
-    <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-black text-[color:var(--marketing-text-strong)] md:overflow-hidden">
+    <main
+      className="relative flex min-h-screen flex-col overflow-x-hidden"
+      style={{ backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
+    >
+      {/* Subtle depth glow */}
       <div className="pointer-events-none absolute inset-0">
-        <MeshGradient
-          className="absolute inset-0 h-full w-full"
-          colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
-          speed={shouldReduceMotion ? 0 : 0.2}
-        />
-        <MeshGradient
-          className="absolute inset-0 h-full w-full opacity-15"
-          colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
-          speed={shouldReduceMotion ? 0 : 0.15}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 70%)",
+          }}
         />
       </div>
 
-      <div className="fixed left-4 top-4 z-30 md:absolute md:left-6 md:top-6">
-        <BackButton className="min-h-11 min-w-11 px-2 py-2 sm:min-h-0 sm:min-w-0 sm:px-0 sm:py-0" />
-      </div>
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-50 px-6 py-4 backdrop-blur-sm md:px-10"
+        style={{
+          backgroundColor: "rgba(10,10,12,0.92)",
+          borderBottom: "1px solid var(--brand-border)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="sigma-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
+              Σ
+            </span>
+            <span
+              className="font-mono text-xs font-medium uppercase tracking-widest"
+              style={{ color: "var(--brand-text)" }}
+            >
+              NUVARE
+            </span>
+          </Link>
 
-      <header className="relative z-20 px-4 pb-3 pt-6 md:px-10 md:pt-8">
-        <div className="flex items-center justify-center">
-          <span className="font-light text-xl tracking-[0.25em] text-[color:var(--marketing-text-strong)]">
-            NUVARE
-          </span>
+          <nav className="hidden items-center gap-8 md:flex">
+            <Link
+              href="/features"
+              className="font-mono text-xs uppercase tracking-widest"
+              style={{ color: "var(--brand-text)" }}
+            >
+              Features
+            </Link>
+            <Link
+              href="/pricing"
+              className="font-mono text-xs uppercase tracking-widest transition-colors hover:text-white"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              Pricing
+            </Link>
+          </nav>
+
+          <Link
+            href="/onboarding"
+            className="font-mono text-xs font-medium uppercase tracking-widest"
+            style={{
+              backgroundColor: "#FFFFFF",
+              color: "#0A0A0C",
+              padding: "8px 18px",
+              borderRadius: "2px",
+            }}
+          >
+            Get Started →
+          </Link>
         </div>
       </header>
 
-      <section className="relative z-20 flex-1 px-4 pb-20 pt-10 md:px-10">
-        <div className="max-w-6xl">
-          <div className="space-y-1">
-            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-4xl font-light leading-tight text-transparent sm:text-5xl md:text-7xl">
+      {/* ── Content ──────────────────────────────────────────────────── */}
+      <section className="relative z-20 flex-1 px-6 pb-20 pt-16 md:px-10">
+        <div className="mx-auto max-w-6xl">
+          <p
+            className="mb-6 font-mono text-xs uppercase tracking-widest"
+            style={{ color: "var(--brand-muted)" }}
+          >
+            Platform Features
+          </p>
+
+          <div className="mb-14">
+            <h1
+              className="font-mono text-5xl font-medium uppercase leading-none md:text-7xl"
+              style={{ color: "var(--brand-text)" }}
+            >
               Everything
             </h1>
-            <h1 className="text-4xl font-black leading-none text-[color:var(--marketing-text-strong)] drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] sm:text-5xl md:text-7xl">
-              you
-            </h1>
-            <h1 className="text-4xl font-light italic leading-tight text-[color:var(--marketing-text-base)] sm:text-5xl md:text-7xl">
-              need.
+            <h1
+              className="font-mono text-5xl font-medium uppercase leading-none md:text-7xl"
+              style={{ color: "var(--brand-text)" }}
+            >
+              You Need.
             </h1>
           </div>
 
-          <div className="mt-8 grid max-w-6xl grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {features.map((feature, index) => {
               const Icon = feature.Icon;
               return (
                 <motion.div
                   key={feature.title}
-                  className="rounded-2xl border border-white/12 bg-[#0b0b0b]/80 p-6"
-                  initial={
-                    shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }
-                  }
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: shouldReduceMotion ? 0 : 0.35,
-                    delay: shouldReduceMotion ? 0 : index * 0.1,
-                    ease: "easeOut",
+                  transition={{ duration: 0.35, delay: index * 0.08, ease: "easeOut" }}
+                  className="transition-colors"
+                  style={{
+                    backgroundColor: "var(--brand-panel)",
+                    border: "1px solid var(--brand-border)",
+                    borderRadius: "12px",
+                    boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+                    padding: "28px",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "#3A3A42";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--brand-border)";
                   }}
                 >
-                  <Icon className="mb-3 text-[color:var(--marketing-text-base)]" size={18} />
-                  <h2 className="mb-2 text-sm font-medium text-[color:var(--marketing-text-strong)]">
+                  <Icon className="mb-4" size={18} style={{ color: "var(--brand-muted)" }} />
+                  <h2
+                    className="mb-3 font-mono text-xs font-medium uppercase tracking-widest"
+                    style={{ color: "var(--brand-text)" }}
+                  >
                     {feature.title}
                   </h2>
-                  <p className="text-sm font-light leading-relaxed text-[color:var(--marketing-text-muted)] sm:text-xs">
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--brand-muted)" }}>
                     {feature.description}
                   </p>
                 </motion.div>
@@ -127,7 +187,7 @@ export default function FeaturesPageClient() {
         </div>
       </section>
 
-      <div className="relative z-20 mt-auto px-4 pb-6 md:px-10">
+      <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
         <Disclaimer />
       </div>
     </main>
