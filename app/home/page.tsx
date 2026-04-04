@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
-import DashboardClient, { type DashboardDeadline } from "@/app/home/home-client";
+import DashboardClient from "@/app/home/home-client";
+import type { DashboardDeadline } from "@/app/home/_lib/types";
 import { createClient } from "@/lib/supabase/server";
 
 type ViewedCountry = {
@@ -10,7 +11,18 @@ type ViewedCountry = {
 };
 
 export const metadata: Metadata = {
-  title: "Nuvare",
+  title: "Dashboard | Nuvare",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      nosnippet: true,
+    },
+  },
 };
 
 export default async function HomePage() {
@@ -56,6 +68,7 @@ export default async function HomePage() {
       userId={user.id}
       userEmail={user.email ?? "Signed-in user"}
       hasProfile={Boolean(profile)}
+      hasCompletedFullOnboarding={Boolean(profile?.onboarding_completed_at)}
       initialDeadlines={initialDeadlines}
       viewedCountries={viewedCountries}
     />

@@ -1,68 +1,27 @@
-# Nuvare
+# Proprietary software
 
-Nuvare is a Next.js app for cross-border compliance and financial intelligence.  
-It includes onboarding, AI guidance, deadline tracking, country intelligence, document vault, notifications, and Stripe-based subscriptions.
+## Legal notice
 
-## Tech stack
+Copyright © 2026 the copyright holders. **All rights reserved.**
 
-- Next.js App Router
-- React + TypeScript
-- Tailwind CSS
-- Supabase (auth + data)
-- Stripe (checkout + webhooks)
-- Anthropic + Perplexity integrations
+This repository, including all files, directories, metadata, history, and derivatives, is **proprietary and confidential**. No license or right is granted to you by implication, estoppel, or otherwise under any intellectual property or proprietary right.
 
-## Getting started
+**You are expressly prohibited from**, and you agree not to and will not permit any third party to:
 
-1. Install dependencies:
+- access, view, clone, fork, mirror, download, or retain copies of this software except as expressly authorized in a separate written agreement signed by the copyright holders;
+- use, execute, run, host, or deploy the software or any portion of it;
+- copy, reproduce, distribute, publish, display, perform, transmit, stream, broadcast, or circulate the software or any derivative work;
+- modify, adapt, translate, create derivative works from, reverse engineer, decompile, disassemble, or attempt to derive source code or underlying ideas;
+- remove, alter, or obscure any proprietary notices;
+- benchmark, scan, or test the software for competitive purposes without prior written consent;
+- disclose the existence, contents, or behavior of this repository to any person not bound by equivalent obligations.
 
-```bash
-npm install
-```
+**Breach** may result in civil and criminal liability. If you believe you have received this repository in error, delete all copies immediately and notify the copyright holders.
 
-2. Create `.env.local` and add the required keys (see list below).
-3. Start the app:
+## Disclaimer of warranty
 
-```bash
-npm run dev
-```
+THE SOFTWARE IS PROVIDED “AS IS” AND “AS AVAILABLE,” WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY.
 
-4. Open [http://localhost:3000](http://localhost:3000).
+## No documentation
 
-## Environment variables
-
-Required in `.env.local`:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `ANTHROPIC_API_KEY`
-- `PERPLEXITY_API_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_CORE_MONTHLY_PRICE_ID`
-- `STRIPE_CORE_YEARLY_PRICE_ID`
-- `STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID`
-- `STRIPE_PROFESSIONAL_YEARLY_PRICE_ID`
-- `NEXT_PUBLIC_APP_URL`
-- `RESEND_API_KEY`
-- `CRON_SECRET`
-
-## Scripts
-
-- `npm run dev` - run local development server
-- `npm run build` - production build
-- `npm run start` - run production server
-- `npm run lint` - run ESLint
-
-## Project structure
-
-- `app/` - routes, pages, and API handlers
-- `components/` - shared UI and app components
-- `lib/` - service clients and helper utilities
-- `public/` - static assets
-
-## Notes
-
-- Keep generated artifacts (`.next/`, `node_modules/`, `tsconfig.tsbuildinfo`) out of commits.
-- This repo intentionally uses a dark, premium UI style across pages.
+This document **intentionally omits** product description, features, architecture, setup, configuration, environment variables, deployment, third-party services, APIs, keys, URLs, and operational procedures. Nothing herein grants permission to use the software.

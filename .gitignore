@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# Versioned UX/SEO writeups live under docs/. Ignore accidental root drops from local tooling.
+/analysis_results.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -31,7 +34,14 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
+# .env* covers .env, .env.local, .env.production, etc.
 .env*
+!.env.example
+# explicit common locals (redundant but obvious in audits)
+.env.local
+.env.development.local
+.env.production.local
+.env.test.local
 
 # vercel
 .vercel

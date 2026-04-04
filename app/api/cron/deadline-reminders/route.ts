@@ -2,9 +2,17 @@
 // e.g. generate one at: https://generate-secret.vercel.app/32
 // Also add RESEND_API_KEY if not already present.
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+
+import type { Database } from "@/lib/database.types";
+import { fetchOnboardingByUserId, fetchRecentMemoryByUserIds } from "@/lib/cron/batch-fetch";
+import {
+  buildProfileEmailSectionHtml,
+  buildProfileInsightLines,
+} from "@/lib/cron/profile-alerts";
+import { logApiError, logApiEvent } from "@/lib/log";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -66,7 +74,7 @@ function groupDeadlinesByUser(deadlines: DeadlineRow[]) {
 }
 
 async function listAllAuthUsers(
-  supabase: SupabaseClient<any, any, any>,
+  supabase: SupabaseClient<Database>,
 ): Promise<Map<string, string>> {
   const userEmailMap = new Map<string, string>();
   const perPage = 1000;
@@ -95,12 +103,11 @@ async function listAllAuthUsers(
 
 export async function GET(request: Request) {
   try {
-    console.log('Cron started')
-    console.log('ENV check:', {
+    logApiEvent("/api/cron/deadline-reminders", "cron_start", {
       hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       hasResendKey: !!process.env.RESEND_API_KEY,
-    })
+    });
 
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = request.headers.get("authorization");
@@ -123,9 +130,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createAdminClient();
     const resend = new Resend(resendApiKey);
 
     let sent = 0;
@@ -152,6 +157,9 @@ export async function GET(request: Request) {
     );
     const deadlinesByUser = groupDeadlinesByUser(deadlines);
     const userEmails = await listAllAuthUsers(supabaseAdmin);
+    const cronUserIds = [...deadlinesByUser.keys()];
+    const onboardingByUser = await fetchOnboardingByUserId(supabaseAdmin, cronUserIds);
+    const memoryByUser = await fetchRecentMemoryByUserIds(supabaseAdmin, cronUserIds, 2);
 
     for (const [userId, userDeadlines] of deadlinesByUser.entries()) {
       const recipientEmail = userEmails.get(userId);
@@ -178,6 +186,12 @@ export async function GET(request: Request) {
         continue;
       }
 
+      const profileLines = buildProfileInsightLines(
+        onboardingByUser.get(userId) ?? null,
+        memoryByUser.get(userId) ?? [],
+      );
+      const profileSectionHtml = buildProfileEmailSectionHtml(profileLines);
+
       try {
         const urgencyColor = (urgency: string) =>
           urgency === 'urgent' ? '#ef4444' : urgency === 'upcoming' ? '#f59e0b' : '#22c55e'
@@ -199,7 +213,8 @@ export async function GET(request: Request) {
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;padding:40px">
     <p style="font-size:11px;font-weight:700;letter-spacing:2px;color:#111;margin:0 0 32px">NUVARE</p>
     <h1 style="font-size:22px;color:#111;margin:0 0 8px">You have ${qualifyingDeadlines.length} upcoming deadline${qualifyingDeadlines.length === 1 ? '' : 's'}</h1>
-    <p style="color:#666;margin:0 0 32px">Here's what needs your attention</p>
+    <p style="color:#666;margin:0 0 24px">Here is what may need your attention. Review deadlines in your dashboard; nothing is filed on your behalf.</p>
+    ${profileSectionHtml}
     <table style="width:100%;border-collapse:collapse">${deadlineRows}</table>
     <a href="https://nuvare.vercel.app/dashboard" style="display:inline-block;margin-top:32px;padding:12px 24px;background:#111;color:#fff;text-decoration:none;border-radius:6px;font-size:14px">View Your Deadlines</a>
     <p style="margin-top:40px;font-size:12px;color:#999">Nuvare · This is informational only, not legal or financial advice.</p>
@@ -236,23 +251,28 @@ export async function GET(request: Request) {
             });
 
             if (notificationError) {
-              console.error('Notification insert error:', notificationError);
+              logApiError("/api/cron/deadline-reminders", notificationError, {
+                phase: "notification_insert",
+              });
             }
           }
         }
       } catch (emailError) {
-        console.error('Email send error:', emailError)
-        errors++
+        logApiError("/api/cron/deadline-reminders", emailError, { phase: "email_send" });
+        errors++;
       }
     }
 
     return NextResponse.json({ sent, errors });
   } catch (error) {
-    console.error('Cron error:', error)
-    return NextResponse.json({ 
-      error: true, 
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    }, { status: 500 })
+    logApiError("/api/cron/deadline-reminders", error);
+    return NextResponse.json(
+      {
+        error: true,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
   }
 }

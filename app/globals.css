@@ -81,6 +81,28 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --marketing-text-strong: #f5f7fb;
+  --marketing-text-base: #dbe3ee;
+  --marketing-text-muted: #b9c5d7;
+
+  /* Onyx Design System Tokens */
+  --onyx-surface:                  #111319;
+  --onyx-surface-dim:              #111319;
+  --onyx-surface-container-lowest: #0c0e14;
+  --onyx-surface-container-low:    #191b22;
+  --onyx-surface-container:        #1e1f26;
+  --onyx-surface-container-high:   #282a30;
+  --onyx-surface-container-highest:#33343b;
+  --onyx-surface-bright:           #373940;
+  --onyx-on-surface:               #e2e2eb;
+  --onyx-on-surface-variant:       #c4c7c8;
+  --onyx-outline:                  #8e9192;
+  --onyx-outline-variant:          #444748;
+  --onyx-error:                    #ffb4ab;
+  --onyx-error-container:          #93000a;
+  --onyx-on-error:                 #690005;
+  --onyx-primary:                  #ffffff;
+  --onyx-on-primary:               #2f3131;
 }
 
 .dark {
@@ -115,11 +137,44 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --marketing-text-strong: #f5f7fb;
+  --marketing-text-base: #dbe3ee;
+  --marketing-text-muted: #b9c5d7;
+
+  /* Onyx Design System Tokens */
+  --onyx-surface:                  #111319;
+  --onyx-surface-dim:              #111319;
+  --onyx-surface-container-lowest: #0c0e14;
+  --onyx-surface-container-low:    #191b22;
+  --onyx-surface-container:        #1e1f26;
+  --onyx-surface-container-high:   #282a30;
+  --onyx-surface-container-highest:#33343b;
+  --onyx-surface-bright:           #373940;
+  --onyx-on-surface:               #e2e2eb;
+  --onyx-on-surface-variant:       #c4c7c8;
+  --onyx-outline:                  #8e9192;
+  --onyx-outline-variant:          #444748;
+  --onyx-error:                    #ffb4ab;
+  --onyx-error-container:          #93000a;
+  --onyx-on-error:                 #690005;
+  --onyx-primary:                  #ffffff;
+  --onyx-on-primary:               #2f3131;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  :where(
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      [role="button"],
+      [tabindex]:not([tabindex="-1"])
+    ):focus-visible {
+    @apply outline-none ring-2 ring-white/45 ring-offset-2 ring-offset-black;
   }
   button {
     @apply cursor-pointer;
@@ -225,4 +280,22 @@
 
 .question-fade-in {
   animation: questionFadeIn 420ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .onboarding-glow,
+  .question-fade-in,
+  .animate-pulse {
+    animation: none !important;
+    transform: none !important;
+  }
 }

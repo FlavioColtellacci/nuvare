@@ -1,15 +1,36 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient } from "@supabase/ssr";
 import BackButton from "@/components/BackButton";
 import Disclaimer from "@/components/Disclaimer";
 import CountryGuideContent from "@/app/countries/[slug]/country-guide-content";
 import { getCountryGuide } from "@/lib/getCountryGuide";
+import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Country Guide - Nuvare",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  return {
+    title: "Country Guide | Nuvare",
+    alternates: {
+      canonical: `/country-guides/${slug}`,
+    },
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+      googleBot: {
+        index: false,
+        follow: false,
+        noimageindex: true,
+        nosnippet: true,
+      },
+    },
+  };
+}
 
 function formatLastUpdated(updatedAt: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -28,25 +49,7 @@ export default async function CountryGuidePage({
 }) {
   const { slug } = await params;
 
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {}
-        },
-      },
-    },
-  );
+  const supabase = await createClient();
 
   const {
     data: { session },

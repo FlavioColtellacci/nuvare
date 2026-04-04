@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+import { logApiError } from "@/lib/log";
+import { enforceVaultUploadRateLimit } from "@/lib/rate-limit";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -12,22 +14,6 @@ function sanitizeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -37,6 +23,11 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const rateLimited = await enforceVaultUploadRateLimit(user.id);
+    if (rateLimited) {
+      return rateLimited;
     }
 
     const formData = await request.formData();
@@ -57,7 +48,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Maximum file size is 10MB." }, { status: 400 });
     }
 
-    const adminSupabase = createAdminSupabaseClient();
+    const adminSupabase = createAdminClient();
     const sanitizedFilename = sanitizeFilename(uploadedFile.name);
     const storagePath = `${user.id}/${Date.now()}_${sanitizedFilename}`;
     const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
@@ -70,6 +61,7 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
+      logApiError("/api/vault/upload", uploadError, { phase: "storage_upload" });
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
@@ -87,6 +79,9 @@ export async function POST(request: Request) {
       .single();
 
     if (insertError || !document) {
+      if (insertError) {
+        logApiError("/api/vault/upload", insertError, { phase: "documents_insert" });
+      }
       await adminSupabase.storage.from("vault").remove([storagePath]);
       return NextResponse.json(
         { error: insertError?.message ?? "Unable to save document." },
@@ -105,6 +100,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, document });
   } catch (error) {
+    logApiError("/api/vault/upload", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unexpected upload error." },
       { status: 500 },

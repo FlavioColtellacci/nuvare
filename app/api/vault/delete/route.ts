@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
+import { logApiError } from "@/lib/log";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -8,22 +9,6 @@ export const runtime = "nodejs";
 type DeletePayload = {
   documentId?: string;
 };
-
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 export async function POST(request: Request) {
   try {
@@ -42,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
-    const adminSupabase = createAdminSupabaseClient();
+    const adminSupabase = createAdminClient();
     const { data: document, error: readError } = await adminSupabase
       .from("documents")
       .select("id, file_path")
@@ -51,6 +36,7 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (readError) {
+      logApiError("/api/vault/delete", readError, { phase: "document_read" });
       return NextResponse.json({ error: readError.message }, { status: 500 });
     }
 
@@ -69,11 +55,13 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
 
     if (deleteError) {
+      logApiError("/api/vault/delete", deleteError, { phase: "document_delete" });
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    logApiError("/api/vault/delete", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to delete document." },
       { status: 500 },

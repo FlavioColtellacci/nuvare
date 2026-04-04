@@ -1,20 +1,22 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
+import {
+  extractPdfTextForVault,
+  minimaxVaultExtractJson,
+} from "@/lib/ai/minimax-vault-extract";
+import { logApiError } from "@/lib/log";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
 const EXTRACTION_SYSTEM_PROMPT =
   "You are a document analysis assistant. Extract all important dates and deadlines from the provided document. Return a JSON array only, with no explanation or extra text. Each item must have exactly these fields: { label: string, date: string (YYYY-MM-DD format), notes: string }. Examples of dates to extract: passport expiry date, visa expiry date, permit renewal date, tax filing deadline, insurance renewal date, certificate expiry. If no dates can be found, return an empty array [].";
 
+/** Below this length, PDF text is treated as empty/unreliable (e.g. scans); MiniMax still runs with an explicit note. */
+const MIN_PDF_TEXT_CHARS_FOR_MINIMAX_TEXT_MODE = 80;
+
 type ExtractPayload = {
   documentId?: string;
-};
-
-type ClaudeResponse = {
-  content?: Array<{
-    type?: string;
-    text?: string;
-  }>;
 };
 
 type ExtractedDate = {
@@ -22,22 +24,6 @@ type ExtractedDate = {
   date: string;
   notes: string;
 };
-
-function createAdminSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error("Missing Supabase service role environment variables.");
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
 
 function normalizeMediaType(fileType: string | null) {
   if (fileType === "application/pdf") {
@@ -61,7 +47,7 @@ function isExtractedDate(value: unknown): value is ExtractedDate {
 }
 
 async function markDocumentAsError(documentId: string) {
-  const adminSupabase = createAdminSupabaseClient();
+  const adminSupabase = createAdminClient();
   await adminSupabase
     .from("documents")
     .update({
@@ -70,7 +56,7 @@ async function markDocumentAsError(documentId: string) {
     .eq("id", documentId);
 }
 
-function cleanClaudeJsonOutput(rawText: string) {
+function cleanModelJsonOutput(rawText: string) {
   const trimmed = rawText.trim();
   if (!trimmed.startsWith("```")) return trimmed;
 
@@ -84,9 +70,8 @@ export async function POST(request: Request) {
   let documentId: string | null = null;
 
   try {
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    if (!anthropicApiKey) {
-      return NextResponse.json({ error: "Missing ANTHROPIC_API_KEY." }, { status: 500 });
+    if (!process.env.MINIMAX_API_KEY?.trim()) {
+      return NextResponse.json({ error: "Missing MINIMAX_API_KEY." }, { status: 500 });
     }
 
     const payload = (await request.json()) as ExtractPayload;
@@ -95,7 +80,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing documentId." }, { status: 400 });
     }
 
-    const adminSupabase = createAdminSupabaseClient();
+    const adminSupabase = createAdminClient();
     const { data: document, error: documentError } = await adminSupabase
       .from("documents")
       .select("id, file_path, file_type")
@@ -121,66 +106,40 @@ export async function POST(request: Request) {
       typeof document.file_type === "string" ? document.file_type : null,
     );
 
-    const attachmentBlock = isPdf
-      ? {
-          type: "document",
-          source: {
-            type: "base64",
-            media_type: mediaType,
-            data: base64Document,
-          },
-        }
-      : {
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: mediaType,
-            data: base64Document,
-          },
-        };
+    const userInstruction = "Extract all important dates and deadlines from this document.";
 
-    let claudePayload: ClaudeResponse | null = null;
+    let textOutput = "";
+
     try {
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-beta": "pdfs-2024-09-25",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: 2048,
-          system: EXTRACTION_SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: [
-                attachmentBlock,
-                {
-                  type: "text",
-                  text: "Extract all important dates and deadlines from this document.",
-                },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (claudeResponse.ok) {
-        claudePayload = (await claudeResponse.json()) as ClaudeResponse;
+      if (isPdf) {
+        const pdfText = await extractPdfTextForVault(fileBytes);
+        const trimmedPdf = pdfText.trim();
+        const documentText =
+          trimmedPdf.length >= MIN_PDF_TEXT_CHARS_FOR_MINIMAX_TEXT_MODE
+            ? pdfText
+            : "(The PDF contained no embedded text or too little text; it may be scanned or image-only. If so, return [].)";
+        textOutput = await minimaxVaultExtractJson({
+          systemPrompt: EXTRACTION_SYSTEM_PROMPT,
+          userInstruction,
+          mode: "text",
+          documentText,
+        });
+      } else {
+        textOutput = await minimaxVaultExtractJson({
+          systemPrompt: EXTRACTION_SYSTEM_PROMPT,
+          userInstruction,
+          mode: "image",
+          mediaType,
+          base64Data: base64Document,
+        });
       }
-    } catch {
+    } catch (extractErr) {
+      logApiError("/api/vault/extract", extractErr, { phase: "minimax_extract", documentId });
       await markDocumentAsError(documentId);
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const textOutput = (claudePayload?.content ?? [])
-      .filter((block) => block.type === "text" && typeof block.text === "string")
-      .map((block) => block.text ?? "")
-      .join("");
-    const cleanedJson = cleanClaudeJsonOutput(textOutput);
+    const cleanedJson = cleanModelJsonOutput(textOutput);
 
     let extractedDates: ExtractedDate[] = [];
     try {
@@ -199,7 +158,8 @@ export async function POST(request: Request) {
       .eq("id", documentId);
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch {
+  } catch (error) {
+    logApiError("/api/vault/extract", error);
     return NextResponse.json({ success: true }, { status: 200 });
   }
 }

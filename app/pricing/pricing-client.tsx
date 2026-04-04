@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 import Disclaimer from "@/components/Disclaimer";
+import Link from "next/link";
 
 type BillingInterval = "monthly" | "yearly";
 
@@ -153,15 +154,13 @@ export default function PricingClient({
           className="text-center font-mono text-4xl font-medium uppercase leading-tight md:text-5xl"
           style={{ color: "var(--brand-text)" }}
         >
-          One plan. All features.{" "}
-          <br className="hidden md:block" />
-          Start with a 7-day free trial.
+          Simple, transparent pricing.
         </h1>
         <p
           className="mt-4 text-center text-sm"
           style={{ color: "var(--brand-muted)" }}
         >
-          Includes Sigma assistant in every plan. NUVARE is built for serious investors who want an accountable process.
+          No hidden fees. Cancel anytime.
         </p>
 
         {/* Billing toggle */}
@@ -193,8 +192,8 @@ export default function PricingClient({
           >
             <span>Yearly</span>
             <span
-              className="shrink-0 rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white"
-              style={{ backgroundColor: "rgba(0,209,178,0.2)", color: "var(--brand-cyan)" }}
+              className="shrink-0 rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-widest"
+              style={{ backgroundColor: "rgba(0,209,178,0.15)", color: "var(--brand-cyan)" }}
             >
               Save 17%
             </span>
@@ -218,35 +217,32 @@ export default function PricingClient({
               className="font-mono text-xs uppercase tracking-widest"
               style={{ color: "var(--brand-muted)" }}
             >
-              PRO MONTHLY
+              Core
             </p>
             <div className="mt-5">
               <p className="font-mono text-4xl font-medium" style={{ color: "var(--brand-text)" }}>
-                {billingInterval === "monthly" ? "$15" : "$150"}
+                {billingInterval === "monthly" ? "$99" : "$990"}
                 <span
                   className="ml-1 font-mono text-sm font-normal"
                   style={{ color: "var(--brand-muted)" }}
                 >
-                  {billingInterval === "monthly" ? "/mo" : "/year"}
+                  {billingInterval === "monthly" ? "/month" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
                 <p className="mt-1 font-mono text-xs" style={{ color: "var(--brand-muted)" }}>
-                  $12.50/mo, billed annually
+                  $82/mo, billed annually
                 </p>
               ) : null}
             </div>
-            <ul className="mt-8 flex-1 space-y-3" style={{ color: "var(--brand-muted)" }}>
+            <ul className="mt-8 flex-1 space-y-3">
               {[
-                "Unlimited Thesis positions",
-                "AI thesis analysis",
-                "Sigma assistant (in-app guidance)",
-                "Sigma Monitor (daily digest)",
-                "Event-triggered review prompts",
-                "Full audit trail",
-                "Thesis health dashboard",
+                "Unlimited queries",
+                "Deadline dashboard",
+                "Advanced AI reasoning with live research",
+                "1 profile",
               ].map((feat) => (
-                <li key={feat} className="flex items-start gap-2 text-sm">
+                <li key={feat} className="flex items-start gap-2 text-sm" style={{ color: "var(--brand-muted)" }}>
                   <span style={{ color: "var(--brand-cyan)", flexShrink: 0 }}>✓</span>
                   {feat}
                 </li>
@@ -264,7 +260,7 @@ export default function PricingClient({
                 background: "transparent",
               }}
             >
-              {loadingPlan === "core" ? "Redirecting..." : "Get Started →"}
+              {loadingPlan === "core" ? "Redirecting..." : "Get started with Core →"}
             </button>
           </article>
 
@@ -279,46 +275,47 @@ export default function PricingClient({
               padding: "32px",
             }}
           >
-            <div className="mb-4 inline-flex w-fit items-center rounded-sm px-2.5 py-1"
-              style={{ border: "1px solid var(--brand-border)" }}>
-              <span className="font-mono text-[10px] uppercase tracking-widest"
-                style={{ color: "var(--brand-cyan)" }}>
-                Best Value
+            <div
+              className="mb-4 inline-flex w-fit items-center rounded-sm px-2.5 py-1"
+              style={{ border: "1px solid var(--brand-border)" }}
+            >
+              <span
+                className="font-mono text-[10px] uppercase tracking-widest"
+                style={{ color: "var(--brand-cyan)" }}
+              >
+                Most popular
               </span>
             </div>
             <p
               className="font-mono text-xs uppercase tracking-widest"
               style={{ color: "var(--brand-muted)" }}
             >
-              PRO YEARLY
+              Professional
             </p>
             <div className="mt-5">
               <p className="font-mono text-4xl font-medium" style={{ color: "var(--brand-text)" }}>
-                {billingInterval === "monthly" ? "$99" : "$990"}
+                {billingInterval === "monthly" ? "$199" : "$1,990"}
                 <span
                   className="ml-1 font-mono text-sm font-normal"
                   style={{ color: "var(--brand-muted)" }}
                 >
-                  {billingInterval === "monthly" ? "/mo" : "/year"}
+                  {billingInterval === "monthly" ? "/month" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
                 <p className="mt-1 font-mono text-xs" style={{ color: "var(--brand-muted)" }}>
-                  $82/mo, billed annually
+                  $166/mo, billed annually
                 </p>
               ) : null}
             </div>
-            <ul className="mt-8 flex-1 space-y-3" style={{ color: "var(--brand-muted)" }}>
+            <ul className="mt-8 flex-1 space-y-3">
               {[
-                "Unlimited Thesis positions",
-                "AI thesis analysis",
-                "Sigma assistant (in-app guidance)",
-                "Sigma Monitor (daily digest + on-demand refresh)",
-                "Event-triggered review prompts",
-                "Full audit trail",
-                "Thesis health dashboard",
+                "Everything in Core",
+                "20 Deep Research queries per month",
+                "Document Vault (coming soon)",
+                "Priority support",
               ].map((feat) => (
-                <li key={feat} className="flex items-start gap-2 text-sm">
+                <li key={feat} className="flex items-start gap-2 text-sm" style={{ color: "var(--brand-muted)" }}>
                   <span style={{ color: "var(--brand-cyan)", flexShrink: 0 }}>✓</span>
                   {feat}
                 </li>
@@ -336,7 +333,7 @@ export default function PricingClient({
                 border: "none",
               }}
             >
-              {loadingPlan === "professional" ? "Redirecting..." : "Get Started →"}
+              {loadingPlan === "professional" ? "Redirecting..." : "Get started with Professional →"}
             </button>
           </article>
         </div>
@@ -351,7 +348,7 @@ export default function PricingClient({
           className="mt-8 text-center font-mono text-xs"
           style={{ color: "var(--brand-muted)" }}
         >
-          NUVARE is not a financial advisor and does not provide investment advice.
+          For enquiries, contact us at hello@nuvare.app
         </p>
       </div>
 

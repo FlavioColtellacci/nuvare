@@ -4,12 +4,12 @@ import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import Disclaimer from "@/components/Disclaimer";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const supabase = useMemo(() => createClient(), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -137,7 +137,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-white/60">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/onboarding"
               className="text-white underline underline-offset-4 transition-colors hover:text-white/85"
