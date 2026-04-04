@@ -1,27 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { MouseEvent } from "react";
-import { MeshGradient } from "@paper-design/shaders-react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Disclaimer from "@/components/Disclaimer";
 
-type Sparkle = {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  duration: number;
-};
-
 export default function Home() {
   const router = useRouter();
   const [isFaqOpen, setIsFaqOpen] = useState(false);
-  const [sparkles, setSparkles] = useState<Sparkle[]>([]);
-  const sparkleId = useRef(0);
-  const lastSparkleAt = useRef(0);
 
   useEffect(() => {
     if (isFaqOpen) {
@@ -34,249 +21,346 @@ export default function Home() {
     };
   }, [isFaqOpen]);
 
-  const createSparkle = (event: MouseEvent<HTMLDivElement>) => {
-    const now = Date.now();
-    if (now - lastSparkleAt.current < 70) return;
-    lastSparkleAt.current = now;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const id = sparkleId.current++;
-    const nextSparkle: Sparkle = {
-      id,
-      x,
-      y,
-      size: 3 + Math.random() * 4,
-      duration: 0.45 + Math.random() * 0.45,
-    };
-
-    setSparkles((prev) => [...prev.slice(-24), nextSparkle]);
-    window.setTimeout(() => {
-      setSparkles((prev) => prev.filter((sparkle) => sparkle.id !== id));
-    }, 900);
-  };
-
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-black text-white">
+    <main
+      className="relative flex min-h-screen flex-col overflow-hidden"
+      style={{ backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
+    >
+      {/* Subtle radial depth glow */}
       <div className="pointer-events-none absolute inset-0">
-        <MeshGradient
-          className="absolute inset-0 h-full w-full"
-          colors={["#000000", "#0a0a14", "#111827", "#0d0d0d", "#05050f"]}
-          speed={0.2}
-        />
-        <MeshGradient
-          className="absolute inset-0 h-full w-full opacity-15"
-          colors={["#000000", "#0d0d1a", "#ffffff", "#0a0a0a"]}
-          speed={0.15}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 70%)",
+          }}
         />
       </div>
 
-      <header className="relative z-20 px-6 pb-3 pt-6 md:px-10 md:pt-8">
-        <div className="grid grid-cols-1 items-center gap-5 md:grid-cols-3">
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="relative w-fit cursor-default select-none"
-            onMouseMove={createSparkle}
-          >
-            <span className="font-light text-xl tracking-[0.25em] text-white">
+      {/* ── Sticky header ────────────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-50 px-6 py-4 backdrop-blur-sm md:px-10"
+        style={{
+          backgroundColor: "rgba(10,10,12,0.92)",
+          borderBottom: "1px solid var(--brand-border)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <span className="sigma-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
+              Σ
+            </span>
+            <span
+              className="font-mono text-xs font-medium uppercase tracking-widest"
+              style={{ color: "var(--brand-text)" }}
+            >
               NUVARE
             </span>
-            <AnimatePresence>
-              {sparkles.map((sparkle) => (
-                <motion.span
-                  key={sparkle.id}
-                  className="pointer-events-none absolute rounded-full bg-white/40"
-                  style={{
-                    left: sparkle.x,
-                    top: sparkle.y,
-                    width: sparkle.size,
-                    height: sparkle.size,
-                  }}
-                  initial={{ opacity: 0, scale: 0.3, x: "-50%", y: "-50%" }}
-                  animate={{ opacity: [0, 1, 0], scale: [0.4, 1, 0.2], y: "-150%" }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: sparkle.duration, ease: "easeOut" }}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.div>
+          </div>
 
-          <nav className="flex items-center justify-center gap-2">
-            <Link
-              href="/features"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
-            >
-              Features
-            </Link>
-            <Link
-              href="/pricing"
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
-            >
-              Pricing
-            </Link>
+          {/* Nav links */}
+          <nav className="hidden items-center gap-8 md:flex">
+            {[
+              { label: "FEATURES", href: "/features" },
+              { label: "PRICING", href: "/pricing" },
+            ].map(({ label, href }) => (
+              <Link
+                key={label}
+                href={href}
+                className="font-mono text-xs uppercase tracking-widest transition-colors hover:text-white"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                {label}
+              </Link>
+            ))}
             <button
               type="button"
               onClick={() => setIsFaqOpen(true)}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm transition-all hover:bg-white/12 hover:text-white"
+              className="font-mono text-xs uppercase tracking-widest transition-colors hover:text-white"
+              style={{ color: "var(--brand-muted)" }}
             >
               FAQ
             </button>
           </nav>
 
-          <div className="flex justify-start md:justify-end">
-            <svg width="0" height="0" className="absolute">
-              <defs>
-                <filter id="gooey">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-                  <feColorMatrix
-                    in="blur"
-                    mode="matrix"
-                    values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"
-                    result="gooey"
-                  />
-                  <feBlend in="SourceGraphic" in2="gooey" />
-                </filter>
-              </defs>
-            </svg>
-            <div className="relative" style={{ filter: "url(#gooey)" }}>
-              <button
-                type="button"
-                onClick={() => router.push("/login")}
-                className="relative z-20 rounded-full border border-white/20 bg-white px-5 py-2 text-xs font-medium text-black transition-transform duration-300 hover:scale-[1.03]"
-              >
-                Login
-              </button>
-              <motion.span
-                className="absolute -left-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={{ x: [0, 8, 0], y: ["-50%", "-70%", "-50%"] }}
-                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-              />
-              <motion.span
-                className="absolute -right-1 top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white/70"
-                animate={{ x: [0, -8, 0], y: ["-50%", "-30%", "-50%"] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-              />
-            </div>
+          {/* Auth / CTA */}
+          <div className="flex items-center gap-5">
+            <button
+              type="button"
+              onClick={() => router.push("/login")}
+              className="hidden font-mono text-xs uppercase tracking-widest transition-colors hover:text-white md:block"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              Log In
+            </button>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/onboarding")}
+              className="font-mono text-xs font-medium uppercase tracking-widest"
+              style={{
+                backgroundColor: "#FFFFFF",
+                color: "#0A0A0C",
+                padding: "8px 18px",
+                border: "none",
+                borderRadius: "2px",
+                letterSpacing: "0.12em",
+              }}
+            >
+              Get Started →
+            </motion.button>
           </div>
         </div>
       </header>
 
-      <section className="relative z-20 flex-1" id="features">
-        <div className="absolute bottom-20 left-6 max-w-2xl md:bottom-24 md:left-10">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-4 py-2 text-xs font-light text-white/80 backdrop-blur-sm">
-            <span>🌐</span>
-            <span>Private intelligence for the internationally mobile</span>
-            <span className="h-px w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </div>
+      {/* ── Hero section ─────────────────────────────────────────────── */}
+      <section className="relative z-20 flex flex-1 flex-col justify-center px-6 py-24 md:px-10">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+            {/* Left: copy */}
+            <div>
+              <p
+                className="mb-8 font-mono text-xs uppercase tracking-widest"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                Private Intelligence Platform
+              </p>
 
-          <div className="mt-6 space-y-1">
-            <h1 className="bg-gradient-to-r from-white to-slate-300 bg-clip-text text-5xl font-light leading-tight text-transparent md:text-7xl">
-              The private
-            </h1>
-            <h1 className="text-5xl font-black leading-none text-white drop-shadow-[0_0_14px_rgba(255,255,255,0.25)] md:text-7xl">
-              intelligence
-            </h1>
-            <h1 className="text-5xl font-light italic leading-tight text-white/80 md:text-7xl">
-              layer.
-            </h1>
-          </div>
+              <div className="space-y-0">
+                <h1
+                  className="font-mono text-6xl font-medium uppercase leading-none md:text-7xl xl:text-8xl"
+                  style={{ color: "var(--brand-text)" }}
+                >
+                  YOUR
+                </h1>
+                <h1
+                  className="font-mono text-6xl font-medium uppercase leading-none md:text-7xl xl:text-8xl"
+                  style={{ color: "var(--brand-text)" }}
+                >
+                  COMPLIANCE
+                </h1>
+                <h1
+                  className="font-mono text-6xl font-medium uppercase leading-none md:text-7xl xl:text-8xl"
+                  style={{ color: "var(--brand-text)" }}
+                >
+                  TRACKED.
+                </h1>
+              </div>
 
-          <p className="mt-6 max-w-xl text-sm font-light leading-relaxed text-white/65 md:text-base">
-            Nuvare watches your compliance and financial obligations across every
-            country you live, work, and invest in, so nothing falls through the
-            cracks.
-          </p>
+              <p
+                className="mt-8 max-w-md text-sm leading-relaxed"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                Nuvare watches your compliance and financial obligations across
+                every country you live, work, and invest in — so nothing falls
+                through the cracks.
+              </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => router.push("/pricing")}
-              className="rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-light text-white transition-colors hover:bg-white/10"
-            >
-              View Pricing
-            </motion.button>
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => router.push("/onboarding")}
-              className="rounded-full border border-white bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-white/90"
-            >
-              Get Started
-            </motion.button>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <motion.button
+                  type="button"
+                  whileHover={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                  onClick={() => router.push("/pricing")}
+                  className="font-mono text-xs uppercase tracking-widest transition-colors"
+                  style={{
+                    border: "1px solid var(--brand-border)",
+                    padding: "12px 24px",
+                    color: "var(--brand-text)",
+                    borderRadius: "2px",
+                    background: "transparent",
+                  }}
+                >
+                  View Pricing →
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push("/onboarding")}
+                  className="font-mono text-xs font-medium uppercase tracking-widest"
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    color: "#0A0A0C",
+                    padding: "12px 24px",
+                    border: "none",
+                    borderRadius: "2px",
+                  }}
+                >
+                  Get Started →
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Right: decorative status card */}
+            <div className="hidden lg:flex lg:justify-end">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+                style={{
+                  backgroundColor: "var(--brand-panel)",
+                  border: "1px solid var(--brand-border)",
+                  borderRadius: "12px",
+                  boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+                  padding: "32px",
+                  width: "340px",
+                }}
+              >
+                <p
+                  className="mb-6 font-mono text-xs uppercase tracking-widest"
+                  style={{ color: "var(--brand-muted)" }}
+                >
+                  Obligation Monitor
+                </p>
+
+                {[
+                  { country: "Portugal", label: "Tax Filing", status: "INTACT", color: "var(--brand-cyan)" },
+                  { country: "UAE", label: "Residency Visa", status: "INTACT", color: "var(--brand-cyan)" },
+                  { country: "UK", label: "30-Day Rule", status: "AT RISK", color: "var(--brand-yellow)" },
+                  { country: "Singapore", label: "Director Filing", status: "INTACT", color: "var(--brand-cyan)" },
+                ].map((item) => (
+                  <div
+                    key={item.country}
+                    className="mb-4 flex items-center justify-between"
+                    style={{ borderBottom: "1px solid var(--brand-border)", paddingBottom: "16px" }}
+                  >
+                    <div>
+                      <p
+                        className="font-mono text-xs font-medium uppercase tracking-widest"
+                        style={{ color: "var(--brand-text)" }}
+                      >
+                        {item.country}
+                      </p>
+                      <p className="mt-0.5 font-mono text-xs" style={{ color: "var(--brand-muted)" }}>
+                        {item.label}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="dot-pulse h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: item.color, display: "inline-block" }}
+                      />
+                      <span
+                        className="font-mono text-xs uppercase tracking-widest"
+                        style={{ color: item.color }}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="mt-2">
+                  <p className="font-mono text-xs uppercase tracking-widest" style={{ color: "var(--brand-muted)" }}>
+                    Next deadline
+                  </p>
+                  <p className="mt-1 font-mono text-sm" style={{ color: "var(--brand-yellow)" }}>
+                    UK — 30-Day Rule · 7 days
+                  </p>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
-
       </section>
 
       <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
         <Disclaimer />
       </div>
 
+      {/* ── FAQ Modal ─────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isFaqOpen ? (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md"
+            style={{ backgroundColor: "rgba(10,10,12,0.88)" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsFaqOpen(false)}
           >
             <motion.div
-              className="relative w-full max-w-lg rounded-2xl border border-white/12 bg-[#0b0b0b] p-8"
+              className="relative w-full max-w-lg"
+              style={{
+                backgroundColor: "var(--brand-panel)",
+                border: "1px solid var(--brand-border)",
+                borderRadius: "12px",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+                padding: "36px",
+              }}
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.98 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
-              onClick={(event) => event.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 onClick={() => setIsFaqOpen(false)}
-                className="absolute right-4 top-4 rounded-full border border-white/15 px-2 py-1 text-xs text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Close FAQ modal"
+                className="absolute right-4 top-4 font-mono text-xs uppercase tracking-widest transition-colors hover:text-white"
+                style={{
+                  color: "var(--brand-muted)",
+                  border: "1px solid var(--brand-border)",
+                  padding: "4px 10px",
+                  borderRadius: "4px",
+                }}
               >
-                X
+                ESC
               </button>
-              <h2 className="font-editorial text-3xl text-white">Frequently Asked Questions</h2>
-              <div className="mt-6">
-                <p className="text-sm font-medium text-white">What is Nuvare?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  Nuvare is a proactive compliance and financial intelligence tool for
-                  internationally mobile professionals. It tracks your obligations
-                  across countries, visas, tax deadlines, permits, foreign asset
-                  declarations, and tells you exactly what to do and when.
-                </p>
 
-                <p className="text-sm font-medium text-white">Who is it for?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  Executives on international assignments, entrepreneurs with
-                  multi-country structures, finance professionals, and wealthy
-                  individuals splitting time across borders.
-                </p>
+              <p
+                className="mb-1 font-mono text-xs uppercase tracking-widest"
+                style={{ color: "var(--brand-muted)" }}
+              >
+                Reference
+              </p>
+              <h2
+                className="font-mono text-xl font-medium uppercase tracking-wide"
+                style={{ color: "var(--brand-text)" }}
+              >
+                FAQ
+              </h2>
 
-                <p className="text-sm font-medium text-white">Is this legal advice?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  No. Nuvare provides structured intelligence to help you understand
-                  your situation and know when to engage a professional. All content
-                  is informational only.
-                </p>
-
-                <p className="text-sm font-medium text-white">What does it cost?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  Core plan is $99/month. Professional plan is $199/month and
-                  includes Deep Research queries, Document Vault, and Country
-                  Intelligence Guides. No free tier.
-                </p>
-
-                <p className="text-sm font-medium text-white">How does the AI work?</p>
-                <p className="mb-4 mt-1 text-sm font-light text-white/60">
-                  Nuvare combines Perplexity for live regulatory data with Claude for
-                  personalised reasoning over your specific multi-country situation.
-                </p>
+              <div className="mt-6 space-y-5">
+                {[
+                  {
+                    q: "What is Nuvare?",
+                    a: "Nuvare is a proactive compliance and financial intelligence tool for internationally mobile professionals. It tracks your obligations across countries, visas, tax deadlines, permits, and foreign asset declarations.",
+                  },
+                  {
+                    q: "Who is it for?",
+                    a: "Executives on international assignments, entrepreneurs with multi-country structures, finance professionals, and wealthy individuals splitting time across borders.",
+                  },
+                  {
+                    q: "Is this legal advice?",
+                    a: "No. Nuvare provides structured intelligence to help you understand your situation and know when to engage a professional. All content is informational only.",
+                  },
+                  {
+                    q: "What does it cost?",
+                    a: "Core plan is $99/month. Professional plan is $199/month and includes Deep Research queries, Document Vault, and Country Intelligence Guides.",
+                  },
+                  {
+                    q: "How does the AI work?",
+                    a: "Nuvare combines Perplexity for live regulatory data with Claude for personalised reasoning over your specific multi-country situation.",
+                  },
+                ].map((item) => (
+                  <div key={item.q}>
+                    <p
+                      className="font-mono text-xs font-medium uppercase tracking-widest"
+                      style={{ color: "var(--brand-text)" }}
+                    >
+                      {item.q}
+                    </p>
+                    <p
+                      className="mt-1 text-sm leading-relaxed"
+                      style={{ color: "var(--brand-muted)" }}
+                    >
+                      {item.a}
+                    </p>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </motion.div>

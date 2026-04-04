@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-
+import Link from "next/link";
 import { cn } from "@/lib/utils";
+import Disclaimer from "@/components/Disclaimer";
 
 type BillingInterval = "monthly" | "yearly";
 
@@ -69,20 +70,113 @@ export default function PricingClient({
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-black px-4 py-16 text-white sm:px-6 md:px-10">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
-        <h1 className="text-center font-editorial text-5xl text-white md:text-6xl">
-          Simple, transparent pricing.
-        </h1>
-        <p className="mt-4 text-center text-sm text-white/55">No hidden fees. Cancel anytime.</p>
+    <main
+      className="flex min-h-screen flex-col overflow-x-hidden"
+      style={{ backgroundColor: "var(--brand-bg)", color: "var(--brand-text)" }}
+    >
+      {/* Subtle depth glow */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,255,255,0.025) 0%, transparent 70%)",
+          }}
+        />
+      </div>
 
-        <div className="mt-8 flex w-full max-w-md rounded-full border border-white/20 bg-[#0d0d0d] p-1">
+      {/* ── Header ───────────────────────────────────────────────────── */}
+      <header
+        className="sticky top-0 z-50 px-6 py-4 backdrop-blur-sm md:px-10"
+        style={{
+          backgroundColor: "rgba(10,10,12,0.92)",
+          borderBottom: "1px solid var(--brand-border)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="sigma-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
+              Σ
+            </span>
+            <span
+              className="font-mono text-xs font-medium uppercase tracking-widest"
+              style={{ color: "var(--brand-text)" }}
+            >
+              NUVARE
+            </span>
+          </Link>
+
+          <nav className="hidden items-center gap-8 md:flex">
+            <Link
+              href="/features"
+              className="font-mono text-xs uppercase tracking-widest transition-colors hover:text-white"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              Features
+            </Link>
+            <Link
+              href="/pricing"
+              className="font-mono text-xs uppercase tracking-widest"
+              style={{ color: "var(--brand-text)" }}
+            >
+              Pricing
+            </Link>
+          </nav>
+
+          <Link
+            href="/onboarding"
+            className="font-mono text-xs font-medium uppercase tracking-widest"
+            style={{
+              backgroundColor: "#FFFFFF",
+              color: "#0A0A0C",
+              padding: "8px 18px",
+              borderRadius: "2px",
+            }}
+          >
+            Get Started →
+          </Link>
+        </div>
+      </header>
+
+      {/* ── Pricing content ───────────────────────────────────────────── */}
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-6 py-20 md:px-10">
+        {/* Eyebrow */}
+        <p
+          className="mb-4 font-mono text-xs uppercase tracking-widest"
+          style={{ color: "var(--brand-muted)" }}
+        >
+          Simple Pricing
+        </p>
+
+        {/* Heading */}
+        <h1
+          className="text-center font-mono text-4xl font-medium uppercase leading-tight md:text-5xl"
+          style={{ color: "var(--brand-text)" }}
+        >
+          One plan. All features.{" "}
+          <br className="hidden md:block" />
+          Start with a 7-day free trial.
+        </h1>
+        <p
+          className="mt-4 text-center text-sm"
+          style={{ color: "var(--brand-muted)" }}
+        >
+          Includes Sigma assistant in every plan. NUVARE is built for serious investors who want an accountable process.
+        </p>
+
+        {/* Billing toggle */}
+        <div
+          className="mt-10 flex rounded-sm p-1"
+          style={{ border: "1px solid var(--brand-border)", backgroundColor: "var(--brand-panel)" }}
+        >
           <button
             type="button"
             onClick={() => setBillingInterval("monthly")}
             className={cn(
-              "flex-1 cursor-pointer rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
-              billingInterval === "monthly" ? "bg-white text-black" : "text-white/70 hover:text-white",
+              "font-mono text-xs uppercase tracking-widest px-6 py-2 transition-colors rounded-sm",
+              billingInterval === "monthly"
+                ? "bg-white text-black"
+                : "text-white/60 hover:text-white",
             )}
           >
             Monthly
@@ -91,86 +185,178 @@ export default function PricingClient({
             type="button"
             onClick={() => setBillingInterval("yearly")}
             className={cn(
-              "inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-xs transition-colors sm:px-5 sm:text-sm",
-              billingInterval === "yearly" ? "bg-white text-black" : "text-white/70 hover:text-white",
+              "inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest px-6 py-2 transition-colors rounded-sm",
+              billingInterval === "yearly"
+                ? "bg-white text-black"
+                : "text-white/60 hover:text-white",
             )}
           >
             <span>Yearly</span>
-            <span className="shrink-0 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white">
+            <span
+              className="shrink-0 rounded-sm px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-widest text-white"
+              style={{ backgroundColor: "rgba(0,209,178,0.2)", color: "var(--brand-cyan)" }}
+            >
               Save 17%
             </span>
           </button>
         </div>
 
+        {/* Pricing cards */}
         <div className="mt-12 grid w-full max-w-4xl gap-6 md:grid-cols-2">
-          <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/20 bg-[#0c0c0c] p-7">
-            <p className="text-xs tracking-[0.2em] text-white/60">CORE</p>
+          {/* Core */}
+          <article
+            className="flex h-full flex-col"
+            style={{
+              backgroundColor: "var(--brand-panel)",
+              border: "1px solid var(--brand-border)",
+              borderRadius: "12px",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
+              padding: "32px",
+            }}
+          >
+            <p
+              className="font-mono text-xs uppercase tracking-widest"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              PRO MONTHLY
+            </p>
             <div className="mt-5">
-              <p className="text-4xl text-white">
-                {billingInterval === "monthly" ? "$99" : "$990"}
-                <span className="ml-1 text-lg text-white/70">
-                  {billingInterval === "monthly" ? "/month" : "/year"}
+              <p className="font-mono text-4xl font-medium" style={{ color: "var(--brand-text)" }}>
+                {billingInterval === "monthly" ? "$15" : "$150"}
+                <span
+                  className="ml-1 font-mono text-sm font-normal"
+                  style={{ color: "var(--brand-muted)" }}
+                >
+                  {billingInterval === "monthly" ? "/mo" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
-                <p className="mt-1 text-xs text-white/55">$82/mo, billed annually</p>
+                <p className="mt-1 font-mono text-xs" style={{ color: "var(--brand-muted)" }}>
+                  $12.50/mo, billed annually
+                </p>
               ) : null}
             </div>
-            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
-              <li>✓ Unlimited queries</li>
-              <li>✓ Deadline dashboard</li>
-              <li>✓ Advanced AI reasoning with live research</li>
-              <li>✓ 1 profile</li>
+            <ul className="mt-8 flex-1 space-y-3" style={{ color: "var(--brand-muted)" }}>
+              {[
+                "Unlimited Thesis positions",
+                "AI thesis analysis",
+                "Sigma assistant (in-app guidance)",
+                "Sigma Monitor (daily digest)",
+                "Event-triggered review prompts",
+                "Full audit trail",
+                "Thesis health dashboard",
+              ].map((feat) => (
+                <li key={feat} className="flex items-start gap-2 text-sm">
+                  <span style={{ color: "var(--brand-cyan)", flexShrink: 0 }}>✓</span>
+                  {feat}
+                </li>
+              ))}
             </ul>
             <button
               type="button"
               onClick={() => void startCheckout("core")}
               disabled={loadingPlan !== null}
-              className="mt-7 h-11 w-full cursor-pointer rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 h-11 w-full font-mono text-xs font-medium uppercase tracking-widest transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                border: "1px solid var(--brand-border)",
+                color: "var(--brand-text)",
+                borderRadius: "2px",
+                background: "transparent",
+              }}
             >
-              {loadingPlan === "core" ? "Redirecting..." : "Get started with Core"}
+              {loadingPlan === "core" ? "Redirecting..." : "Get Started →"}
             </button>
           </article>
 
-          <article className="flex h-full cursor-pointer flex-col rounded-2xl border border-white/45 bg-[#101010] p-7">
-            <p className="inline-flex rounded-full border border-white/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/80">
-              Most popular
+          {/* Professional */}
+          <article
+            className="flex h-full flex-col"
+            style={{
+              backgroundColor: "var(--brand-panel-alt)",
+              border: "1px solid var(--brand-border)",
+              borderRadius: "12px",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
+              padding: "32px",
+            }}
+          >
+            <div className="mb-4 inline-flex w-fit items-center rounded-sm px-2.5 py-1"
+              style={{ border: "1px solid var(--brand-border)" }}>
+              <span className="font-mono text-[10px] uppercase tracking-widest"
+                style={{ color: "var(--brand-cyan)" }}>
+                Best Value
+              </span>
+            </div>
+            <p
+              className="font-mono text-xs uppercase tracking-widest"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              PRO YEARLY
             </p>
-            <p className="mt-4 text-xs tracking-[0.2em] text-white/60">PROFESSIONAL</p>
             <div className="mt-5">
-              <p className="text-4xl text-white">
-                {billingInterval === "monthly" ? "$199" : "$1,990"}
-                <span className="ml-1 text-lg text-white/70">
-                  {billingInterval === "monthly" ? "/month" : "/year"}
+              <p className="font-mono text-4xl font-medium" style={{ color: "var(--brand-text)" }}>
+                {billingInterval === "monthly" ? "$99" : "$990"}
+                <span
+                  className="ml-1 font-mono text-sm font-normal"
+                  style={{ color: "var(--brand-muted)" }}
+                >
+                  {billingInterval === "monthly" ? "/mo" : "/year"}
                 </span>
               </p>
               {billingInterval === "yearly" ? (
-                <p className="mt-1 text-xs text-white/55">$166/mo, billed annually</p>
+                <p className="mt-1 font-mono text-xs" style={{ color: "var(--brand-muted)" }}>
+                  $82/mo, billed annually
+                </p>
               ) : null}
             </div>
-            <ul className="mt-6 flex-1 space-y-2 text-sm text-white/85">
-              <li>✓ Everything in Core</li>
-              <li>✓ 20 Deep Research queries per month</li>
-              <li>✓ Document Vault (coming soon)</li>
-              <li>✓ Priority support</li>
+            <ul className="mt-8 flex-1 space-y-3" style={{ color: "var(--brand-muted)" }}>
+              {[
+                "Unlimited Thesis positions",
+                "AI thesis analysis",
+                "Sigma assistant (in-app guidance)",
+                "Sigma Monitor (daily digest + on-demand refresh)",
+                "Event-triggered review prompts",
+                "Full audit trail",
+                "Thesis health dashboard",
+              ].map((feat) => (
+                <li key={feat} className="flex items-start gap-2 text-sm">
+                  <span style={{ color: "var(--brand-cyan)", flexShrink: 0 }}>✓</span>
+                  {feat}
+                </li>
+              ))}
             </ul>
             <button
               type="button"
               onClick={() => void startCheckout("professional")}
               disabled={loadingPlan !== null}
-              className="mt-7 h-11 w-full cursor-pointer rounded-md bg-white px-4 text-sm font-medium text-black transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-8 h-11 w-full font-mono text-xs font-medium uppercase tracking-widest transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              style={{
+                backgroundColor: "#FFFFFF",
+                color: "#0A0A0C",
+                borderRadius: "2px",
+                border: "none",
+              }}
             >
-              {loadingPlan === "professional"
-                ? "Redirecting..."
-                : "Get started with Professional"}
+              {loadingPlan === "professional" ? "Redirecting..." : "Get Started →"}
             </button>
           </article>
         </div>
 
-        {errorMessage ? <p className="mt-5 text-sm text-red-300">{errorMessage}</p> : null}
-        <p className="mt-8 text-center text-sm text-white/50">
-          For enquiries, contact us at hello@nuvare.app
+        {errorMessage ? (
+          <p className="mt-5 font-mono text-xs" style={{ color: "#F87171" }}>
+            {errorMessage}
+          </p>
+        ) : null}
+
+        <p
+          className="mt-8 text-center font-mono text-xs"
+          style={{ color: "var(--brand-muted)" }}
+        >
+          NUVARE is not a financial advisor and does not provide investment advice.
         </p>
+      </div>
+
+      <div className="relative z-20 mt-auto px-6 pb-6 md:px-10">
+        <Disclaimer />
       </div>
     </main>
   );
