@@ -96,8 +96,8 @@ export default function PricingClient({
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="sigma-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
-              Σ
+            <span className="nuvare-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
+              N
             </span>
             <span
               className="font-mono text-xs font-medium uppercase tracking-widest"
