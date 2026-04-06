@@ -229,7 +229,7 @@
   50% { opacity: 1; }
 }
 
-.sigma-glitch {
+.nuvare-glitch {
   animation: sigma-subtle-glitch 3s ease-in-out infinite;
 }
 

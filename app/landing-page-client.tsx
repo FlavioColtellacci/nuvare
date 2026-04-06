@@ -56,9 +56,9 @@ export default function LandingPageClient() {
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <span className="sigma-glitch font-mono text-base font-medium" style={{ color: "var(--brand-text)" }}>
-              Σ
+          <div className="flex items-center gap-3">
+            <span className="nuvare-glitch font-mono text-base font-medium leading-none" style={{ color: "var(--brand-text)" }}>
+              N
             </span>
             <span
               className="font-mono text-xs font-medium uppercase tracking-widest"
@@ -155,6 +155,17 @@ export default function LandingPageClient() {
                 >
                   TRACKED.
                 </h1>
+
+                {/* Standalone glitched N — like synesi's Σ */}
+                <div
+                  className="nuvare-glitch font-mono font-medium uppercase leading-none mt-6"
+                  style={{
+                    color: "var(--brand-text)",
+                    fontSize: "clamp(4rem, 12vw, 9rem)",
+                  }}
+                >
+                  N
+                </div>
               </div>
 
               <p
